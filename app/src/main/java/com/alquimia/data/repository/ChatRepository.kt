@@ -3,44 +3,42 @@ package com.alquimia.data.repository
 import com.alquimia.data.models.Conversation
 import com.alquimia.data.models.Message
 import io.github.jan.supabase.postgrest.Postgrest
-//import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.query.Order
 import javax.inject.Inject
 import javax.inject.Singleton
-import io.github.jan.supabase.postgrest.query.Order
+
 @Singleton
 class ChatRepository @Inject constructor(
     private val postgrest: Postgrest
 ) {
 
-    suspend fun getConversationsForUser(userId: String): List<Conversation> {
+    suspend fun getConversationsForUser(userId: String): Result<List<Conversation>> {
         return try {
-            postgrest["conversations"]
+            val conversations = postgrest["conversations"]
                 .select {
-                    filter {
-                        or {
-                            eq("user1_id", userId)
-                            eq("user2_id", userId)
-                        }
+                    or {
+                        eq("user1_id", userId)
+                        eq("user2_id", userId)
                     }
                 }
                 .decodeList<Conversation>()
+            Result.success(conversations)
         } catch (e: Exception) {
-            emptyList()
+            Result.failure(e)
         }
     }
 
-    suspend fun getMessagesForConversation(conversationId: String): List<Message> {
+    suspend fun getMessagesForConversation(conversationId: String): Result<List<Message>> {
         return try {
-            postgrest["messages"]
+            val messages = postgrest["messages"]
                 .select {
-                    filter {
-                        eq("conversation_id", conversationId)
-                    }
-                    order(column = "timestamp", order = Order.ASCENDING) // ou DESCENDING se quiser do mais novo para o mais antigo
+                    eq("conversation_id", conversationId)
+                    order("timestamp", Order.ASCENDING) // Sintaxe correta para order
                 }
                 .decodeList<Message>()
+            Result.success(messages)
         } catch (e: Exception) {
-            emptyList()
+            Result.failure(e)
         }
     }
 
@@ -53,9 +51,12 @@ class ChatRepository @Inject constructor(
                 content = content
             )
 
-            val insertedMessage = postgrest["messages"]
+            val insertedMessages = postgrest["messages"]
                 .insert(message)
-                .decodeSingle<Message>()
+                .decodeList<Message>()
+
+            val insertedMessage = insertedMessages.firstOrNull()
+                ?: throw Exception("Falha ao inserir mensagem")
 
             Result.success(insertedMessage)
         } catch (e: Exception) {
@@ -63,43 +64,41 @@ class ChatRepository @Inject constructor(
         }
     }
 
-    suspend fun getOrCreateConversation(userId1: String, userId2: String): Conversation {
+    suspend fun getOrCreateConversation(userId1: String, userId2: String): Result<Conversation> {
         return try {
-            val existingConversation = postgrest["conversations"]
+            val existingConversations = postgrest["conversations"]
                 .select {
-                    filter {
-                        or {
-                            and {
-                                eq("user1_id", userId1)
-                                eq("user2_id", userId2)
-                            }
-                            and {
-                                eq("user1_id", userId2)
-                                eq("user2_id", userId1)
-                            }
+                    or {
+                        and {
+                            eq("user1_id", userId1)
+                            eq("user2_id", userId2)
+                        }
+                        and {
+                            eq("user1_id", userId2)
+                            eq("user2_id", userId1)
                         }
                     }
                 }
-                .decodeSingleOrNull<Conversation>()
+                .decodeList<Conversation>()
+
+            val existingConversation = existingConversations.firstOrNull()
 
             if (existingConversation != null) {
-                existingConversation
+                Result.success(existingConversation)
             } else {
                 val newConversation = Conversation(
                     user1_id = userId1,
                     user2_id = userId2
                 )
 
-                postgrest["conversations"]
+                val insertedConversations = postgrest["conversations"]
                     .insert(newConversation)
-                    .decodeSingle<Conversation>()
+                    .decodeList<Conversation>()
+
+                Result.success(insertedConversations.firstOrNull() ?: newConversation)
             }
         } catch (e: Exception) {
-            Conversation(
-                id = "temp_${System.currentTimeMillis()}",
-                user1_id = userId1,
-                user2_id = userId2
-            )
+            Result.failure(e)
         }
     }
 }

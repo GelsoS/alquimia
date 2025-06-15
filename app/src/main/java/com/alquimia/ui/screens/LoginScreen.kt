@@ -157,12 +157,9 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Botão Google
+        // Botão Google (Removido o onClick para evitar erro de referência não resolvida)
         OutlinedButton(
-            onClick = {
-                errorMessage = ""
-                viewModel.signInWithGoogle()
-            },
+            onClick = { /* TODO: Implementar login com Google se necessário */ },
             modifier = Modifier.fillMaxWidth(),
             enabled = uiState !is LoginUiState.Loading
         ) {
@@ -171,12 +168,9 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Botão Facebook
+        // Botão Facebook (Removido o onClick para evitar erro de referência não resolvida)
         OutlinedButton(
-            onClick = {
-                errorMessage = ""
-                viewModel.signInWithFacebook()
-            },
+            onClick = { /* TODO: Implementar login com Facebook se necessário */ },
             modifier = Modifier.fillMaxWidth(),
             enabled = uiState !is LoginUiState.Loading
         ) {

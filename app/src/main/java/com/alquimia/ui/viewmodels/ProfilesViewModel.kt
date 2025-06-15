@@ -26,12 +26,13 @@ class ProfilesViewModel @Inject constructor(
         _isLoading.value = true
 
         viewModelScope.launch {
-            val result = userRepository.getCompatibleUsers("current_user_id")
+            val result = userRepository.getAllUsers() // Alterado para getAllUsers
 
             result.onSuccess { userList ->
                 _users.value = userList
             }.onFailure {
                 _users.value = emptyList()
+                // Opcional: logar o erro ou mostrar uma mensagem para o usuário
             }
 
             _isLoading.value = false

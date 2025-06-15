@@ -41,7 +41,7 @@ fun ProfileDetailScreen(
     val user by viewModel.user.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val chatTime by viewModel.chatTime.collectAsState()
-    val chemistryLevel by viewModel.chemistryLevel.collectAsState()
+    val blurStatus by viewModel.blurStatus.collectAsState() // Usando blurStatus
 
     LaunchedEffect(userId) {
         viewModel.loadUserProfile(userId)
@@ -73,7 +73,7 @@ fun ProfileDetailScreen(
                         contentDescription = null,
                         modifier = Modifier
                             .fillMaxSize()
-                            .blur(radius = (chemistryLevel * 0.15f).dp), // Blur baseado na química
+                            .blur(radius = (blurStatus * 0.15f).dp), // Blur baseado em blurStatus
                         contentScale = ContentScale.Crop
                     )
 
@@ -165,7 +165,7 @@ fun ProfileDetailScreen(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         LinearProgressIndicator(
-                            progress = { (100 - chemistryLevel) / 100f },
+                            progress = { (100 - blurStatus) / 100f }, // Usando blurStatus
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(8.dp)
@@ -176,12 +176,12 @@ fun ProfileDetailScreen(
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
-                            text = "${100 - chemistryLevel}% revelado",
+                            text = "${100 - blurStatus}% revelado", // Usando blurStatus
                             fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
 
-                        if (chemistryLevel > 0) {
+                        if (blurStatus > 0) { // Usando blurStatus
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = "Continue conversando para revelar mais fotos!",
@@ -194,65 +194,6 @@ fun ProfileDetailScreen(
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                             )
-                        }
-                    }
-                }
-            }
-
-            item {
-                // Descrição do usuário
-                userProfile.description?.let {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(20.dp)) {
-                            Text(
-                                text = "📝 Sobre mim",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = it,
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
-
-            item {
-                // Interesses
-                userProfile.interests?.let { interests ->
-                    if (interests.isNotEmpty()) {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(20.dp)) {
-                                Text(
-                                    text = "❤️ Interesses",
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                FlowRow(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    interests.forEach { interest ->
-                                        AssistChip(
-                                            onClick = { /* Não faz nada por enquanto */ },
-                                            label = { Text(interest) }
-                                        )
-                                    }
-                                }
-                            }
                         }
                     }
                 }
@@ -283,11 +224,11 @@ fun ProfileDetailScreen(
                                     contentDescription = null,
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .blur(radius = (chemistryLevel * 0.2f).dp),
+                                        .blur(radius = (blurStatus * 0.2f).dp), // Blur baseado em blurStatus
                                     contentScale = ContentScale.Crop
                                 )
 
-                                if (chemistryLevel > 20) {
+                                if (blurStatus > 20) { // Usando blurStatus
                                     Box(
                                         modifier = Modifier
                                             .fillMaxSize()

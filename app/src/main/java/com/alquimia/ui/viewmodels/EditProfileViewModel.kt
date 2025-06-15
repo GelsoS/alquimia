@@ -42,10 +42,13 @@ class EditProfileViewModel @Inject constructor(
 
         viewModelScope.launch {
             // Usando "current_user_id" como ID do usuário atual (mock)
+            // TODO: Substituir por ID do usuário logado real
             val result = userRepository.getUserById("current_user_id")
 
             result.onSuccess { userProfile ->
                 _user.value = userProfile
+            }.onFailure {
+                // Opcional: logar o erro ou mostrar uma mensagem
             }
 
             _isLoading.value = false
@@ -62,21 +65,29 @@ class EditProfileViewModel @Inject constructor(
                 val bytes = inputStream?.readBytes() ?: throw Exception("Erro ao ler imagem")
 
                 val fileName = "profile_${System.currentTimeMillis()}.jpg"
-                val userId = "current_user_id" // ID do usuário atual (mock)
+                val userId = _user.value?.id ?: "current_user_id" // Usar ID do usuário real se disponível
 
                 val result = userRepository.uploadProfilePicture(userId, bytes, fileName)
 
                 result.onSuccess { imageUrl ->
                     _uploadSuccess.value = true
-
                     // Atualizar o perfil do usuário com a nova URL da imagem
-                    _user.value = _user.value?.copy(profile_picture = imageUrl)
+                    viewModelScope.launch {
+                        val updateResult = userRepository.updateProfilePicture(userId, imageUrl)
+                        updateResult.onSuccess {
+                            _user.value = _user.value?.copy(profile_picture = imageUrl)
+                        }.onFailure {
+                            // Opcional: logar erro ao atualizar URL da imagem no perfil
+                        }
+                    }
                 }.onFailure {
                     _uploadSuccess.value = false
+                    // Opcional: logar o erro ou mostrar uma mensagem
                 }
 
             } catch (e: Exception) {
                 _uploadSuccess.value = false
+                // Opcional: logar o erro ou mostrar uma mensagem
             } finally {
                 _isUploading.value = false
             }
@@ -102,6 +113,8 @@ class EditProfileViewModel @Inject constructor(
             result.onSuccess {
                 _user.value = updatedUser
                 _saveSuccess.value = true
+            }.onFailure {
+                // Opcional: logar o erro ou mostrar uma mensagem
             }
 
             _isLoading.value = false

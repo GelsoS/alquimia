@@ -1,66 +1,49 @@
 package com.alquimia.data.repository
 
 import com.alquimia.data.models.User
-import io.github.jan.supabase.gotrue.Auth
+import io.github.jan.supabase.gotrue.GoTrue
 import io.github.jan.supabase.gotrue.providers.builtin.Email
-import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.postgrest.Postgrest // Import corrigido
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class AuthRepository @Inject constructor(
-    private val goTrue: Auth,
+    val goTrue: GoTrue,
     private val postgrest: Postgrest
 ) {
 
     suspend fun signInWithEmail(email: String, password: String): Result<User> {
         return try {
-            // Fazer login no Supabase Auth
-            goTrue.signInWith(Email) {
+            goTrue.loginWith(Email) {
                 this.email = email
                 this.password = password
             }
 
-            // Buscar dados do usuário na tabela users
-            val currentUser = getCurrentUser()
+            // Após o login bem-sucedido, buscar o perfil do usuário na tabela 'users'
+            // Se o perfil não existir, ele será criado no LoginViewModel
+            val currentUser = getCurrentUser().getOrThrow()
             if (currentUser != null) {
                 Result.success(currentUser)
             } else {
-                Result.failure(Exception("Usuário não encontrado na base de dados"))
+                // Isso pode acontecer se o perfil ainda não foi criado na tabela 'users'
+                // O LoginViewModel lidará com a criação do perfil neste caso.
+                Result.failure(Exception("Perfil de usuário não encontrado na base de dados. Será criado."))
             }
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    suspend fun signUpWithEmail(email: String, password: String, name: String): Result<User> {
+    // Esta função agora apenas cria a conta de autenticação e envia o email de confirmação.
+    // A criação do perfil na tabela 'users' será feita após o primeiro login/confirmação.
+    suspend fun signUpWithEmail(email: String, password: String): Result<Unit> { // Retorna Result<Unit>
         return try {
-            // Criar conta no Supabase Auth
-            val response = goTrue.signUpWith(Email) {
+            goTrue.signUpWith(Email) {
                 this.email = email
                 this.password = password
             }
-
-            // Na versão atual do SDK, precisamos acessar o ID do usuário de forma diferente
-            val session = goTrue.currentSessionOrNull()
-            val userId = session?.user?.id ?: throw Exception("ID do usuário não encontrado")
-
-            // Criar perfil do usuário na tabela users
-            val user = User(
-                id = userId,
-                email = email,
-                name = name,
-                age = 25, // Valor padrão, pode ser editado depois
-                bio = "Novo no Alquimia!",
-                location = "Brasil",
-                profile_pictures = emptyList(),
-                interests = emptyList(),
-                description = "Olá! Acabei de me juntar ao Alquimia."
-            )
-
-            postgrest["users"].insert(user)
-
-            Result.success(user)
+            Result.success(Unit) // Sucesso na criação da conta de autenticação
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -68,35 +51,35 @@ class AuthRepository @Inject constructor(
 
     suspend fun resetPassword(email: String): Result<Unit> {
         return try {
-            // O método correto é resetPasswordForEmail
-            goTrue.resetPasswordForEmail(email)
+            goTrue.sendRecoveryEmail(email)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    suspend fun getCurrentUser(): User? {
+    suspend fun getCurrentUser(): Result<User?> {
         return try {
-            val userId = goTrue.currentSessionOrNull()?.user?.id ?: return null
+            val session = goTrue.currentSessionOrNull()
+            val userId = session?.user?.id
 
-            postgrest["users"]
-                .select {
-                    filter {
-                        eq("id", userId)
-                    }
-                }
-                .decodeSingle<User>()
+            if (userId != null) {
+                val users = postgrest["users"]
+                    .select { eq("id", userId) }
+                    .decodeList<User>()
+
+                Result.success(users.firstOrNull())
+            } else {
+                Result.success(null)
+            }
         } catch (e: Exception) {
-            null
+            Result.failure(e)
         }
     }
 
-
     suspend fun signOut(): Result<Unit> {
         return try {
-            // O método correto é signOut, não logout
-            goTrue.signOut()
+            goTrue.logout()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

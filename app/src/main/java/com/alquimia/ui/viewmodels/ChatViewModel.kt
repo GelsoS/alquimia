@@ -33,10 +33,14 @@ class ChatViewModel @Inject constructor(
             conversationResult.onSuccess { conversation ->
                 currentConversationId = conversation.id
 
-                val messagesResult = chatRepository.getMessages(conversation.id)
+                val messagesResult = chatRepository.getMessagesForConversation(conversation.id) // Alterado para getMessagesForConversation
                 messagesResult.onSuccess { messageList ->
                     _messages.value = messageList
+                }.onFailure {
+                    // Opcional: logar erro ao carregar mensagens
                 }
+            }.onFailure {
+                // Opcional: logar erro ao criar/obter conversa
             }
 
             _isLoading.value = false
@@ -56,6 +60,8 @@ class ChatViewModel @Inject constructor(
 
             result.onSuccess { newMessage ->
                 _messages.value = _messages.value + newMessage
+            }.onFailure {
+                // Opcional: logar erro ao enviar mensagem
             }
         }
     }

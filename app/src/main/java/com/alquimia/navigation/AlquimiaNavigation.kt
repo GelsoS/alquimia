@@ -10,7 +10,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.alquimia.ui.components.AlquimiaBottomNavigation
-import com.alquimia.ui.screens.*
+import com.alquimia.ui.screens.* // Importa todas as telas, incluindo LoginScreen
+import com.alquimia.ui.screens.LoginScreen // Import explícito para garantir
 
 @Composable
 fun AlquimiaNavigation(
@@ -19,7 +20,6 @@ fun AlquimiaNavigation(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Rotas que devem mostrar o bottom navigation
     val bottomNavRoutes = listOf("profiles", "messages", "settings")
     val showBottomNav = currentRoute in bottomNavRoutes
 
@@ -85,7 +85,7 @@ fun AlquimiaNavigation(
 
             composable("profiles") {
                 ProfilesScreen(
-                    onNavigateToProfileDetail = { userId -> // Alterado para navegar para o detalhe
+                    onNavigateToProfileDetail = { userId ->
                         navController.navigate("profile_detail/$userId")
                     },
                     onNavigateToSettings = {
@@ -102,7 +102,7 @@ fun AlquimiaNavigation(
                 )
             }
 
-            composable("profile_detail/{userId}") { backStackEntry -> // Rota para detalhes do perfil
+            composable("profile_detail/{userId}") { backStackEntry ->
                 val userId = backStackEntry.arguments?.getString("userId") ?: ""
                 ProfileDetailScreen(
                     userId = userId,

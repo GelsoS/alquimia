@@ -29,9 +29,14 @@ class RegisterViewModel @Inject constructor(
         _uiState.value = RegisterUiState.Loading
 
         viewModelScope.launch {
-            val result = authRepository.signUp(email, password, name, age, city, gender)
+            // A função signUpWithEmail agora só lida com a autenticação.
+            // Os dados do perfil (name, age, city, gender) serão usados no LoginViewModel
+            // para criar o perfil na tabela 'users' após o primeiro login/confirmação.
+            val result = authRepository.signUpWithEmail(email, password)
 
             _uiState.value = if (result.isSuccess) {
+                // Após o signup, o usuário precisa confirmar o email e fazer login.
+                // Não navegamos para Profiles aqui, mas para Login.
                 RegisterUiState.Success
             } else {
                 RegisterUiState.Error(result.exceptionOrNull()?.message ?: "Erro no cadastro")

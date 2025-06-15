@@ -27,8 +27,8 @@ class ProfileDetailViewModel @Inject constructor(
     private val _chatTime = MutableStateFlow(0)
     val chatTime: StateFlow<Int> = _chatTime.asStateFlow()
 
-    private val _chemistryLevel = MutableStateFlow(100)
-    val chemistryLevel: StateFlow<Int> = _chemistryLevel.asStateFlow()
+    private val _blurStatus = MutableStateFlow(100) // Renomeado para blur_status
+    val blurStatus: StateFlow<Int> = _blurStatus.asStateFlow() // Renomeado para blur_status
 
     fun loadUserProfile(userId: String) {
         _isLoading.value = true
@@ -38,13 +38,18 @@ class ProfileDetailViewModel @Inject constructor(
             val userResult = userRepository.getUserById(userId)
             userResult.onSuccess { userProfile ->
                 _user.value = userProfile
+            }.onFailure {
+                // Opcional: logar erro
             }
 
             // Carregar dados da conversa (se existir)
+            // TODO: Substituir "current_user_id" pelo ID do usuário logado real
             val conversationResult = chatRepository.getOrCreateConversation("current_user_id", userId)
             conversationResult.onSuccess { conversation ->
                 _chatTime.value = conversation.total_chat_time
-                _chemistryLevel.value = conversation.chemistry_level
+                _blurStatus.value = conversation.blur_status // Usando blur_status
+            }.onFailure {
+                // Opcional: logar erro
             }
 
             _isLoading.value = false

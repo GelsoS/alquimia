@@ -1,5 +1,7 @@
 package com.alquimia.di
 
+import io.github.jan.supabase.SupabaseClient
+import com.alquimia.data.SupabaseInstance
 import com.alquimia.data.repository.AuthRepository
 import com.alquimia.data.repository.ChatRepository
 import com.alquimia.data.repository.UserRepository
@@ -7,8 +9,8 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.gotrue.GoTrue
+import io.github.jan.supabase.gotrue.gotrue
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.storage.Storage
@@ -22,7 +24,7 @@ object AppModule {
     @Provides
     @Singleton
     fun provideSupabaseClient(): SupabaseClient {
-        return com.alquimia.data.SupabaseClient.client
+        return SupabaseInstance.client
     }
 
     @Provides

@@ -26,7 +26,7 @@ import kotlinx.coroutines.flow.collectLatest
 @Composable
 fun RegisterScreen(
     onNavigateToLogin: () -> Unit,
-    onNavigateToProfiles: () -> Unit,
+    onNavigateToProfiles: () -> Unit, // Manter para compatibilidade, mas não será usado diretamente aqui
     viewModel: RegisterViewModel = hiltViewModel()
 ) {
     var name by remember { mutableStateOf("") }
@@ -39,14 +39,18 @@ fun RegisterScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+    var showSuccessSnackbar by remember { mutableStateOf(false) } // Novo estado para o Snackbar
 
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() } // Estado para o Snackbar
 
     LaunchedEffect(key1 = Unit) {
         viewModel.uiState.collectLatest { state ->
             when (state) {
                 is RegisterUiState.Success -> {
-                    onNavigateToProfiles()
+                    showSuccessSnackbar = true
+                    // Não navega para perfis aqui. O usuário precisa confirmar o email.
+                    // A navegação para login será feita após o Snackbar.
                     viewModel.resetState()
                 }
                 is RegisterUiState.Error -> {
@@ -57,221 +61,238 @@ fun RegisterScreen(
         }
     }
 
+    // Efeito para mostrar o Snackbar e navegar
+    LaunchedEffect(showSuccessSnackbar) {
+        if (showSuccessSnackbar) {
+            snackbarHostState.showSnackbar(
+                message = "Conta criada! Verifique seu email para confirmar.",
+                duration = SnackbarDuration.Long
+            )
+            showSuccessSnackbar = false // Resetar o estado
+            onNavigateToLogin() // Navegar de volta para o login após a mensagem
+        }
+    }
+
     val genderOptions = listOf("Masculino", "Feminino")
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Título
-        Text(
-            text = "Criar Conta",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "Descubra a química perfeita",
-            fontSize = 16.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Campo Nome
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Nome completo") },
-            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Campo Email
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
-            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Campo Senha
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Senha (mín. 6 caracteres)") },
-            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-            trailingIcon = {
-                TextButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Text(
-                        text = if (passwordVisible) "👁️" else "🙈",
-                        fontSize = 16.sp
-                    )
-                }
-            },
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            isError = password.isNotEmpty() && password.length < 6
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Campo Confirmar Senha
-        OutlinedTextField(
-            value = confirmPassword,
-            onValueChange = { confirmPassword = it },
-            label = { Text("Confirmar senha") },
-            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-            trailingIcon = {
-                TextButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
-                    Text(
-                        text = if (confirmPasswordVisible) "👁️" else "🙈",
-                        fontSize = 16.sp
-                    )
-                }
-            },
-            visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            isError = confirmPassword.isNotEmpty() && password != confirmPassword
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Campo Idade
-        OutlinedTextField(
-            value = age,
-            onValueChange = { if (it.all { char -> char.isDigit() }) age = it },
-            label = { Text("Idade") },
-            leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Campo Cidade
-        OutlinedTextField(
-            value = city,
-            onValueChange = { city = it },
-            label = { Text("Cidade") },
-            leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Seleção de Gênero
-        Text(
-            text = "Gênero",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.align(Alignment.Start)
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) } // Adiciona o SnackbarHost
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            genderOptions.forEach { option ->
-                Row(
-                    modifier = Modifier
-                        .selectable(
+            // Título
+            Text(
+                text = "Criar Conta",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Descubra a química perfeita",
+                fontSize = 16.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Campo Nome
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Nome completo") },
+                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Campo Email
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email") },
+                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Campo Senha
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Senha (mín. 6 caracteres)") },
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                trailingIcon = {
+                    TextButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Text(
+                            text = if (passwordVisible) "👁️" else "🙈",
+                            fontSize = 16.sp
+                        )
+                    }
+                },
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                isError = password.isNotEmpty() && password.length < 6
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Campo Confirmar Senha
+            OutlinedTextField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                label = { Text("Confirmar senha") },
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                trailingIcon = {
+                    TextButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                        Text(
+                            text = if (confirmPasswordVisible) "👁️" else "🙈",
+                            fontSize = 16.sp
+                        )
+                    }
+                },
+                visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                isError = confirmPassword.isNotEmpty() && password != confirmPassword
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Campo Idade
+            OutlinedTextField(
+                value = age,
+                onValueChange = { if (it.all { char -> char.isDigit() }) age = it },
+                label = { Text("Idade") },
+                leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Campo Cidade
+            OutlinedTextField(
+                value = city,
+                onValueChange = { city = it },
+                label = { Text("Cidade") },
+                leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Seleção de Gênero
+            Text(
+                text = "Gênero",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.align(Alignment.Start)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                genderOptions.forEach { option ->
+                    Row(
+                        modifier = Modifier
+                            .selectable(
+                                selected = gender == option,
+                                onClick = { gender = option }
+                            )
+                            .weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
                             selected = gender == option,
                             onClick = { gender = option }
                         )
-                        .weight(1f),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(
-                        selected = gender == option,
-                        onClick = { gender = option }
-                    )
-                    Text(
-                        text = option,
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
+                        Text(
+                            text = option,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-        // Botão Cadastrar
-        Button(
-            onClick = {
-                errorMessage = ""
-                viewModel.signUp(
-                    email = email,
-                    password = password,
-                    name = name,
-                    age = age.toIntOrNull() ?: 0,
-                    city = city,
-                    gender = gender
-                )
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = uiState !is RegisterUiState.Loading &&
-                    name.isNotBlank() &&
-                    email.isNotBlank() &&
-                    password.length >= 6 &&
-                    password == confirmPassword &&
-                    age.isNotBlank() &&
-                    city.isNotBlank() &&
-                    gender.isNotBlank()
-        ) {
-            if (uiState is RegisterUiState.Loading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-            } else {
-                Text("Criar Conta")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Link para login
-        Row {
-            Text("Já tem uma conta? ")
-            TextButton(onClick = onNavigateToLogin) {
-                Text("Faça login")
-            }
-        }
-
-        // Mensagem de erro
-        if (errorMessage.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+            // Botão Cadastrar
+            Button(
+                onClick = {
+                    errorMessage = ""
+                    viewModel.signUp(
+                        email = email,
+                        password = password,
+                        name = name,
+                        age = age.toIntOrNull() ?: 0,
+                        city = city,
+                        gender = gender
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = uiState !is RegisterUiState.Loading &&
+                        name.isNotBlank() &&
+                        email.isNotBlank() &&
+                        password.length >= 6 &&
+                        password == confirmPassword &&
+                        age.isNotBlank() &&
+                        city.isNotBlank() &&
+                        gender.isNotBlank()
             ) {
-                Text(
-                    text = errorMessage,
-                    modifier = Modifier.padding(16.dp),
-                    color = MaterialTheme.colorScheme.onErrorContainer
-                )
+                if (uiState is RegisterUiState.Loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("Criar Conta")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Link para login
+            Row {
+                Text("Já tem uma conta? ")
+                TextButton(onClick = onNavigateToLogin) {
+                    Text("Faça login")
+                }
+            }
+
+            // Mensagem de erro
+            if (errorMessage.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                ) {
+                    Text(
+                        text = errorMessage,
+                        modifier = Modifier.padding(16.dp),
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
             }
         }
     }

@@ -2,7 +2,6 @@ package com.alquimia.data.repository
 
 import com.alquimia.data.models.User
 import io.github.jan.supabase.postgrest.Postgrest
-import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.storage.Storage
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -13,27 +12,38 @@ class UserRepository @Inject constructor(
     private val storage: Storage
 ) {
 
-    suspend fun getAllUsers(): List<User> {
+    suspend fun getAllUsers(): Result<List<User>> {
         return try {
-            postgrest["users"]
-                .select(columns = Columns.ALL)
+            val users = postgrest["users"]
+                .select()
                 .decodeList<User>()
+            Result.success(users)
         } catch (e: Exception) {
-            emptyList()
+            Result.failure(e)
         }
     }
 
-    suspend fun getUserById(userId: String): User? {
+    suspend fun getUserById(userId: String): Result<User?> {
         return try {
-            postgrest["users"]
-                .select {
-                    filter {
-                        eq("id", userId)
-                    }
-                }
-                .decodeSingle<User>()
+            val users = postgrest["users"]
+                .select { eq("id", userId) }
+                .decodeList<User>()
+
+            Result.success(users.firstOrNull())
         } catch (e: Exception) {
-            null
+            Result.failure(e)
+        }
+    }
+
+    // Nova função para inserir um usuário na tabela 'users'
+    suspend fun insertUser(user: User): Result<User> {
+        return try {
+            val insertedUsers = postgrest["users"]
+                .insert(user)
+                .decodeList<User>()
+            Result.success(insertedUsers.first())
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
@@ -41,9 +51,7 @@ class UserRepository @Inject constructor(
         return try {
             postgrest["users"]
                 .update(user) {
-                    filter {
-                        eq("id", user.id)
-                    }
+                    eq("id", user.id)
                 }
             Result.success(user)
         } catch (e: Exception) {
@@ -56,10 +64,8 @@ class UserRepository @Inject constructor(
             val bucket = storage["profile-pictures"]
             val path = "$userId/$fileName"
 
-            // Upload da imagem
             bucket.upload(path, imageData)
 
-            // Obter URL pública
             val publicUrl = bucket.publicUrl(path)
 
             Result.success(publicUrl)
@@ -68,41 +74,14 @@ class UserRepository @Inject constructor(
         }
     }
 
-    suspend fun addProfilePicture(userId: String, imageUrl: String): Result<Unit> {
+    suspend fun updateProfilePicture(userId: String, imageUrl: String?): Result<Unit> {
         return try {
-            // Buscar usuário atual
-            val currentUser = getUserById(userId)
-            if (currentUser != null) {
-                // Adicionar nova foto à lista
-                val updatedPictures = currentUser.profile_pictures + imageUrl
-                val updatedUser = currentUser.copy(profile_pictures = updatedPictures)
-
-                // Atualizar no banco
-                updateUser(updatedUser)
+            val currentUserResult = getUserById(userId)
+            currentUserResult.getOrThrow()?.let { currentUser ->
+                val updatedUser = currentUser.copy(profile_picture = imageUrl)
+                updateUser(updatedUser).getOrThrow()
                 Result.success(Unit)
-            } else {
-                Result.failure(Exception("Usuário não encontrado"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    suspend fun removeProfilePicture(userId: String, imageUrl: String): Result<Unit> {
-        return try {
-            // Buscar usuário atual
-            val currentUser = getUserById(userId)
-            if (currentUser != null) {
-                // Remover foto da lista
-                val updatedPictures = currentUser.profile_pictures.filter { it != imageUrl }
-                val updatedUser = currentUser.copy(profile_pictures = updatedPictures)
-
-                // Atualizar no banco
-                updateUser(updatedUser)
-                Result.success(Unit)
-            } else {
-                Result.failure(Exception("Usuário não encontrado"))
-            }
+            } ?: Result.failure(Exception("Usuário não encontrado"))
         } catch (e: Exception) {
             Result.failure(e)
         }

@@ -82,36 +82,31 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
 
-    // Room
-    implementation("androidx.room:room-runtime:2.6.0")
-    kapt("androidx.room:room-compiler:2.6.0")
-
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.6")
 
     // Hilt
-    implementation("com.google.dagger:hilt-android:2.48")
+    implementation("com.google.dagger:hilt-android:2.48.1")
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
-    kapt("com.google.dagger:hilt-compiler:2.48")
+    kapt("com.google.dagger:hilt-compiler:2.48.1")
 
-    // Coil
+    // Image loading
     implementation("io.coil-kt:coil-compose:2.5.0")
 
     // Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
 
-    // Supabase
-    implementation(platform("io.github.jan-tennert.supabase:bom:3.2.0-beta-2"))
-    implementation("io.github.jan-tennert.supabase:postgrest-kt:2.1.1")
-    implementation("io.ktor:ktor-client-android:3.1.2")
-    implementation("io.github.jan-tennert.supabase:realtime-kt:1.3.2")
-    implementation("io.github.jan-tennert.supabase:auth-kt:3.0.0-beta-1")
-    implementation("io.github.jan-tennert.supabase:storage-kt:1.3.2")
-    implementation("io.github.jan-tennert.supabase:supabase-kt:3.0.0-beta-1")
+    // Location services
+    implementation("com.google.android.gms:play-services-location:21.0.1")
 
-    implementation("io.github.jan-tennert.supabase:supabase-kt:3.2.0-rc-1")
+    // Supabase - versões estáveis
+    implementation("io.github.jan-tennert.supabase:postgrest-kt:1.4.7")
+    implementation("io.github.jan-tennert.supabase:gotrue-kt:1.4.7")
+    implementation("io.github.jan-tennert.supabase:storage-kt:1.4.7")
+    implementation("io.github.jan-tennert.supabase:realtime-kt:1.4.7")
+    implementation("io.ktor:ktor-client-android:2.3.4")
 
-    // Testes
+    // Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
