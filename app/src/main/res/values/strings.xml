@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Alquimia</string>
+    <string name="app_description">A química perfeita te espera</string>
+    <string name="discover_title">Descobrir</string>
+    <string name="chemistry_building">Construindo química...</string>
+    <string name="perfect_match">Encontre sua fórmula perfeita</string>
+    <string name="alchemy_preferences">Preferências Alquímicas</string>
+    <string name="save_formula">Salvar Fórmula</string>
+    <string name="chemistry_level">Nível de Química</string>
+    <string name="building_connection">Construindo conexão...</string>
+</resources>
