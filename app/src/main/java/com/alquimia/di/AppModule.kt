@@ -1,7 +1,7 @@
 package com.alquimia.di
 
 import io.github.jan.supabase.SupabaseClient
-import com.alquimia.data.SupabaseInstance
+//import com.alquimia.data.SupabaseInstance
 import com.alquimia.data.repository.AuthRepository
 import com.alquimia.data.repository.ChatRepository
 import com.alquimia.data.repository.UserRepository
@@ -16,16 +16,33 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.storage.Storage
 import io.github.jan.supabase.storage.storage
 import javax.inject.Singleton
+import com.alquimia.BuildConfig
+import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.realtime.Realtime
+import io.github.jan.supabase.serializer.KotlinXSerializer
+import kotlinx.serialization.json.Json
 
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
-
     @Provides
     @Singleton
     fun provideSupabaseClient(): SupabaseClient {
-        return SupabaseInstance.client
+        return createSupabaseClient(
+            supabaseUrl = BuildConfig.SUPABASE_URL,
+            supabaseKey = BuildConfig.SUPABASE_ANON_KEY
+        ) {
+            install(GoTrue)
+            install(Postgrest)
+            install(Storage)
+            install(Realtime)
+            defaultSerializer = KotlinXSerializer(Json {
+                ignoreUnknownKeys = true
+            })
+
+        }
     }
+
 
     @Provides
     @Singleton
