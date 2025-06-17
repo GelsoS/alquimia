@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "966651440495",
+    "project_id": "alquimia-462318",
+    "storage_bucket": "alquimia-462318.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:966651440495:android:abcdef123456",
+        "android_client_info": {
+          "package_name": "com.alquimia"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "966651440495-lbb5216hov1e4clm7asluihturrjo5ut.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.alquimia",
+            "certificate_hash": "SHA1_HASH_SERA_GERADO_AUTOMATICAMENTE"
+          }
+        },
+        {
+          "client_id": "966651440495-lbb5216hov1e4clm7asluihturrjo5ut.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyABC123DEF456GHI789JKL"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "966651440495-lbb5216hov1e4clm7asluihturrjo5ut.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
