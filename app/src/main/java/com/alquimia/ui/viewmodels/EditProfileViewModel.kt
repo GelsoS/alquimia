@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.alquimia.data.models.User
+import com.alquimia.data.repository.AuthRepository
 import com.alquimia.data.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +16,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class EditProfileViewModel @Inject constructor(
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _user = MutableStateFlow<User?>(null)
@@ -33,24 +35,30 @@ class EditProfileViewModel @Inject constructor(
     private val _saveSuccess = MutableStateFlow(false)
     val saveSuccess: StateFlow<Boolean> = _saveSuccess.asStateFlow()
 
+    private val _errorMessage = MutableStateFlow("")
+    val errorMessage: StateFlow<String> = _errorMessage.asStateFlow()
+
     init {
         loadUserProfile()
     }
 
     private fun loadUserProfile() {
         _isLoading.value = true
+        _errorMessage.value = ""
 
         viewModelScope.launch {
-            // Usando "current_user_id" como ID do usuário atual (mock)
-            // TODO: Substituir por ID do usuário logado real
-            val result = userRepository.getUserById("current_user_id")
+            val currentUserId = authRepository.getCurrentSession()?.user?.id
+            if (currentUserId != null) {
+                val result = userRepository.getUserById(currentUserId)
 
-            result.onSuccess { userProfile ->
-                _user.value = userProfile
-            }.onFailure {
-                // Opcional: logar o erro ou mostrar uma mensagem
+                result.onSuccess { userProfile ->
+                    _user.value = userProfile
+                }.onFailure { e ->
+                    _errorMessage.value = e.message ?: "Erro ao carregar perfil"
+                }
+            } else {
+                _errorMessage.value = "Usuário não autenticado."
             }
-
             _isLoading.value = false
         }
     }
@@ -58,6 +66,7 @@ class EditProfileViewModel @Inject constructor(
     fun uploadProfilePicture(context: Context, imageUri: Uri) {
         _isUploading.value = true
         _uploadSuccess.value = false
+        _errorMessage.value = ""
 
         viewModelScope.launch {
             try {
@@ -65,47 +74,53 @@ class EditProfileViewModel @Inject constructor(
                 val bytes = inputStream?.readBytes() ?: throw Exception("Erro ao ler imagem")
 
                 val fileName = "profile_${System.currentTimeMillis()}.jpg"
-                val userId = _user.value?.id ?: "current_user_id" // Usar ID do usuário real se disponível
+                val userId = authRepository.getCurrentSession()?.user?.id ?: throw Exception("Usuário não autenticado para upload.")
 
                 val result = userRepository.uploadProfilePicture(userId, bytes, fileName)
 
                 result.onSuccess { imageUrl ->
                     _uploadSuccess.value = true
-                    // Atualizar o perfil do usuário com a nova URL da imagem
                     viewModelScope.launch {
                         val updateResult = userRepository.updateProfilePicture(userId, imageUrl)
                         updateResult.onSuccess {
                             _user.value = _user.value?.copy(profile_picture = imageUrl)
-                        }.onFailure {
-                            // Opcional: logar erro ao atualizar URL da imagem no perfil
+                        }.onFailure { e ->
+                            _errorMessage.value = e.message ?: "Erro ao atualizar URL da imagem no perfil"
                         }
                     }
-                }.onFailure {
-                    _uploadSuccess.value = false
-                    // Opcional: logar o erro ou mostrar uma mensagem
+                }.onFailure { e ->
+                    _errorMessage.value = e.message ?: "Erro ao fazer upload da imagem"
                 }
 
             } catch (e: Exception) {
-                _uploadSuccess.value = false
-                // Opcional: logar o erro ou mostrar uma mensagem
+                _errorMessage.value = e.message ?: "Erro desconhecido ao processar imagem"
             } finally {
                 _isUploading.value = false
             }
         }
     }
 
-    fun updateUserProfile(name: String, age: Int, city: String, gender: String) {
+    fun updateUserProfile(name: String, age: Int, city: String, gender: String, interests: List<String>?) {
         _isLoading.value = true
         _saveSuccess.value = false
+        _errorMessage.value = ""
 
         viewModelScope.launch {
-            val currentUser = _user.value ?: return@launch
+            val currentUserId = authRepository.getCurrentSession()?.user?.id
+            if (currentUserId == null) {
+                _errorMessage.value = "Usuário não autenticado para salvar perfil."
+                _isLoading.value = false
+                return@launch
+            }
+
+            val currentUser = _user.value ?: User(id = currentUserId, email = authRepository.getCurrentSession()?.user?.email ?: "", name = "", age = 0, city = "", gender = "")
 
             val updatedUser = currentUser.copy(
                 name = name,
                 age = age,
                 city = city,
-                gender = gender
+                gender = gender,
+                interests = interests // Atualizar interesses
             )
 
             val result = userRepository.updateUser(updatedUser)
@@ -113,11 +128,23 @@ class EditProfileViewModel @Inject constructor(
             result.onSuccess {
                 _user.value = updatedUser
                 _saveSuccess.value = true
-            }.onFailure {
-                // Opcional: logar o erro ou mostrar uma mensagem
+            }.onFailure { e ->
+                _errorMessage.value = e.message ?: "Erro ao salvar perfil"
             }
 
             _isLoading.value = false
         }
+    }
+
+    fun resetUploadSuccess() {
+        _uploadSuccess.value = false
+    }
+
+    fun resetSaveSuccess() {
+        _saveSuccess.value = false
+    }
+
+    fun resetErrorMessage() {
+        _errorMessage.value = ""
     }
 }

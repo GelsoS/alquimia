@@ -1,104 +1,118 @@
 package com.alquimia.data.repository
 
-import com.alquimia.data.models.Conversation
-import com.alquimia.data.models.Message
-import io.github.jan.supabase.postgrest.Postgrest
-import io.github.jan.supabase.postgrest.query.Order
+import com.alquimia.data.remote.ApiService
+import com.alquimia.data.remote.models.*
+import com.alquimia.data.remote.models.ErrorResponse // Importar o novo modelo de erro
+import com.alquimia.util.Resource
+import com.google.gson.Gson
 import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class ChatRepository @Inject constructor(
-    private val postgrest: Postgrest
-) {
+interface ChatRepository {
+    suspend fun getOrCreateConversation(userId1: String, userId2: String, token: String): Resource<ConversationData>
+    suspend fun getUserConversations(token: String): Resource<ConversationsResponse>
+    suspend fun getMessages(conversationId: String, token: String, page: Int? = null, limit: Int? = null): Resource<MessagesResponse>
+    suspend fun sendMessage(conversationId: String, content: String, token: String): Resource<MessageData>
+    suspend fun updateChatMetrics(conversationId: String, chatTime: Int?, chemistryLevel: Int?, token: String): Resource<AuthResponse>
+}
 
-    suspend fun getConversationsForUser(userId: String): Result<List<Conversation>> {
+class ChatRepositoryImpl @Inject constructor(
+    private val apiService: ApiService
+) : ChatRepository {
+
+    override suspend fun getOrCreateConversation(userId1: String, userId2: String, token: String): Resource<ConversationData> {
         return try {
-            val conversations = postgrest["conversations"]
-                .select {
-                    or {
-                        eq("user1_id", userId)
-                        eq("user2_id", userId)
-                    }
-                }
-                .decodeList<Conversation>()
-            Result.success(conversations)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    suspend fun getMessagesForConversation(conversationId: String): Result<List<Message>> {
-        return try {
-            val messages = postgrest["messages"]
-                .select {
-                    eq("conversation_id", conversationId)
-                    order("timestamp", Order.ASCENDING) // Sintaxe correta para order
-                }
-                .decodeList<Message>()
-            Result.success(messages)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    suspend fun sendMessage(conversationId: String, senderId: String, receiverId: String, content: String): Result<Message> {
-        return try {
-            val message = Message(
-                conversation_id = conversationId,
-                sender_id = senderId,
-                receiver_id = receiverId,
-                content = content
-            )
-
-            val insertedMessages = postgrest["messages"]
-                .insert(message)
-                .decodeList<Message>()
-
-            val insertedMessage = insertedMessages.firstOrNull()
-                ?: throw Exception("Falha ao inserir mensagem")
-
-            Result.success(insertedMessage)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    suspend fun getOrCreateConversation(userId1: String, userId2: String): Result<Conversation> {
-        return try {
-            val existingConversations = postgrest["conversations"]
-                .select {
-                    or {
-                        and {
-                            eq("user1_id", userId1)
-                            eq("user2_id", userId2)
-                        }
-                        and {
-                            eq("user1_id", userId2)
-                            eq("user2_id", userId1)
-                        }
-                    }
-                }
-                .decodeList<Conversation>()
-
-            val existingConversation = existingConversations.firstOrNull()
-
-            if (existingConversation != null) {
-                Result.success(existingConversation)
+            val response = apiService.getOrCreateConversation(userId1, userId2, "Bearer $token")
+            if (response.isSuccessful) {
+                Resource.Success(response.body()!!.conversation)
             } else {
-                val newConversation = Conversation(
-                    user1_id = userId1,
-                    user2_id = userId2
-                )
-
-                val insertedConversations = postgrest["conversations"]
-                    .insert(newConversation)
-                    .decodeList<Conversation>()
-
-                Result.success(insertedConversations.firstOrNull() ?: newConversation)
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = try {
+                    Gson().fromJson(errorBody, ErrorResponse::class.java).message
+                } catch (e: Exception) {
+                    "Erro desconhecido ao obter/criar conversa"
+                }
+                Resource.Error(errorMessage, null)
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Resource.Error("Erro de rede: ${e.localizedMessage}", null)
+        }
+    }
+
+    override suspend fun getUserConversations(token: String): Resource<ConversationsResponse> {
+        return try {
+            val response = apiService.getUserConversations("Bearer $token")
+            if (response.isSuccessful) {
+                Resource.Success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = try {
+                    Gson().fromJson(errorBody, ErrorResponse::class.java).message
+                } catch (e: Exception) {
+                    "Erro desconhecido ao buscar conversas"
+                }
+                Resource.Error(errorMessage, null)
+            }
+        } catch (e: Exception) {
+            Resource.Error("Erro de rede: ${e.localizedMessage}", null)
+        }
+    }
+
+    override suspend fun getMessages(conversationId: String, token: String, page: Int?, limit: Int?): Resource<MessagesResponse> {
+        return try {
+            val response = apiService.getMessages(conversationId, page ?: 1, limit ?: 50, "Bearer $token")
+            if (response.isSuccessful) {
+                Resource.Success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = try {
+                    Gson().fromJson(errorBody, ErrorResponse::class.java).message
+                } catch (e: Exception) {
+                    "Erro desconhecido ao buscar mensagens"
+                }
+                Resource.Error(errorMessage, null)
+            }
+        } catch (e: Exception) {
+            Resource.Error("Erro de rede: ${e.localizedMessage}", null)
+        }
+    }
+
+    override suspend fun sendMessage(conversationId: String, content: String, token: String): Resource<MessageData> {
+        return try {
+            val request = SendMessageRequest(content)
+            val response = apiService.sendMessage(conversationId, request, "Bearer $token")
+            if (response.isSuccessful) {
+                Resource.Success(response.body()!!.data)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = try {
+                    Gson().fromJson(errorBody, ErrorResponse::class.java).message
+                } catch (e: Exception) {
+                    "Erro desconhecido ao enviar mensagem"
+                }
+                Resource.Error(errorMessage, null)
+            }
+        } catch (e: Exception) {
+            Resource.Error("Erro de rede: ${e.localizedMessage}", null)
+        }
+    }
+
+    override suspend fun updateChatMetrics(conversationId: String, chatTime: Int?, chemistryLevel: Int?, token: String): Resource<AuthResponse> {
+        return try {
+            val request = ChatMetricsRequest(chatTime, chemistryLevel)
+            val response = apiService.updateChatMetrics(conversationId, request, "Bearer $token")
+            if (response.isSuccessful) {
+                Resource.Success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = try {
+                    Gson().fromJson(errorBody, ErrorResponse::class.java).message
+                } catch (e: Exception) {
+                    "Erro desconhecido ao atualizar métricas"
+                }
+                Resource.Error(errorMessage, null)
+            }
+        } catch (e: Exception) {
+            Resource.Error("Erro de rede: ${e.localizedMessage}", null)
         }
     }
 }

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background">
@@ -9,59 +10,146 @@
         android:id="@+id/toolbar"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:title="⚙️ Perfil e Configurações"
+        android:title="⚙️ Meu Perfil"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <LinearLayout
+    <ScrollView
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:orientation="vertical"
-        android:padding="16dp"
-        android:gravity="center_horizontal"
         app:layout_constraintTop_toBottomOf="@id/toolbar"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- Conteúdo do perfil e configurações aqui -->
-        <TextView
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Bem-vindo ao seu perfil!"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="32dp" />
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:gravity="center_horizontal">
 
-        <!-- Botão de Logout -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnLogout"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Sair da Conta"
-            android:backgroundTint="@color/error"
-            android:textColor="@color/on_error"
-            app:icon="@drawable/ic_logout"
-            app:iconTint="@color/on_error"
-            app:cornerRadius="8dp" />
+            <!-- Profile Picture -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="150dp"
+                android:layout_height="150dp"
+                app:cardCornerRadius="75dp"
+                app:cardElevation="8dp"
+                android:layout_marginBottom="24dp">
 
-        <!-- Mensagem de erro/sucesso para logout -->
-        <TextView
-            android:id="@+id/tvLogoutMessage"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:textColor="@color/error"
-            android:visibility="gone" />
+                <ImageView
+                    android:id="@+id/ivProfilePicture"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/ic_person"
+                    android:contentDescription="Foto de perfil do usuário" />
 
-        <ProgressBar
-            android:id="@+id/progressBar"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:visibility="gone" />
+            </com.google.android.material.card.MaterialCardView>
 
-    </LinearLayout>
+            <!-- User Name -->
+            <TextView
+                android:id="@+id/tvUserName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                android:textSize="24sp"
+                android:textColor="@color/on_background"
+                android:layout_marginBottom="8dp"
+                tools:text="Nome do Usuário" />
+
+            <!-- User Age and City -->
+            <TextView
+                android:id="@+id/tvUserAgeCity"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:textColor="@color/on_surface_variant"
+                android:drawablePadding="4dp"
+                app:drawableStartCompat="@drawable/ic_location_small"
+                android:layout_marginBottom="16dp"
+                tools:text="28 anos • São Paulo" />
+
+            <!-- User Gender -->
+            <TextView
+                android:id="@+id/tvUserGender"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:textColor="@color/on_surface_variant"
+                android:drawablePadding="4dp"
+                app:drawableStartCompat="@drawable/ic_person"
+                android:layout_marginBottom="24dp"
+                tools:text="Gênero: Feminino" />
+
+            <!-- Interests Section -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Meus Interesses"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/on_background"
+                android:layout_marginBottom="12dp" />
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipGroupInterests"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="32dp"
+                app:chipSpacingHorizontal="8dp"
+                app:chipSpacingVertical="8dp" />
+
+            <!-- Botão Editar Perfil -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnEditProfile"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Editar Perfil"
+                android:layout_marginBottom="16dp"
+                app:icon="@drawable/ic_edit"
+                app:cornerRadius="8dp" />
+
+            <!-- Botão de Logout -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLogout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sair da Conta"
+                android:backgroundTint="@color/error"
+                android:textColor="@color/on_error"
+                app:icon="@drawable/ic_logout"
+                app:iconTint="@color/on_error"
+                app:cornerRadius="8dp" />
+
+            <!-- Mensagem de erro/sucesso para logout -->
+            <TextView
+                android:id="@+id/tvLogoutMessage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:textColor="@color/error"
+                android:visibility="gone" />
+
+            <ProgressBar
+                android:id="@+id/progressBar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:visibility="gone" />
+
+        </LinearLayout>
+    </ScrollView>
+
+    <ProgressBar
+        android:id="@+id/progressBarProfile"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

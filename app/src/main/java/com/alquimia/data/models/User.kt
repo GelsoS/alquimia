@@ -11,9 +11,9 @@ data class User(
     val city: String = "",
     val gender: String = "",
     val profile_picture: String? = null,
-    val last_seen: String? = null, // Adicionado para corresponder ao DB
-    val created_at: String? = null
-    // Removido 'updated_at' para corresponder ao esquema do DB
+    val last_seen: String? = null,
+    val created_at: String? = null,
+    val interests: List<String>? = null // NOVO: Campo para interesses
 )
 
 @Serializable
@@ -23,7 +23,7 @@ data class Conversation(
     val user2_id: String = "",
     val started_at: String? = null,
     val total_chat_time: Int = 0,
-    val blur_status: Int = 100, // Renomeado de 'chemistry_level' para 'blur_status'
+    val blur_status: Int = 100,
     val created_at: String? = null,
     val updated_at: String? = null
 )
@@ -36,7 +36,6 @@ data class Message(
     val receiver_id: String = "",
     val content: String = "",
     val timestamp: String? = null
-    // Removido 'is_read' para corresponder ao esquema do DB
 )
 
 @Serializable

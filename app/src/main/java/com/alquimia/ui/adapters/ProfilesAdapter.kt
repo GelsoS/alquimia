@@ -33,7 +33,7 @@ class ProfilesAdapter(
         fun bind(user: User) {
             binding.tvName.text = user.name
             binding.tvAgeCity.text = "${user.age} anos • ${user.city}"
-            binding.tvChemistry.text = "🧪 ${(0..100).random()}%"
+            binding.tvChemistry.text = "🧪 ${(0..100).random()}%" // Manter valor aleatório por enquanto
 
             Glide.with(binding.root.context)
                 .load(user.profile_picture)

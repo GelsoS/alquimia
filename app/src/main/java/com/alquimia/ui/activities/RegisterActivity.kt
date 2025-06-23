@@ -37,6 +37,8 @@ class RegisterActivity : AppCompatActivity() {
             val age = binding.etAge.text.toString().trim()
             val city = binding.etCity.text.toString().trim()
             val gender = getSelectedGender()
+            // Interesses não são coletados na tela de registro atual, mas podem ser adicionados
+            val interests: List<String>? = null // Ou coletar de um campo se você adicionar um
 
             if (validateInput(name, email, password, confirmPassword, age, city, gender)) {
                 viewModel.signUp(
@@ -45,7 +47,8 @@ class RegisterActivity : AppCompatActivity() {
                     name = name,
                     age = age.toInt(),
                     city = city,
-                    gender = gender
+                    gender = gender,
+                    interests = interests // Passar interesses
                 )
             }
         }
@@ -172,18 +175,14 @@ class RegisterActivity : AppCompatActivity() {
     private fun showSuccessAndNavigateToLogin() {
         Snackbar.make(
             binding.root,
-            "Conta criada! Verifique seu email para confirmar.",
+            "Conta criada! Faça login.", // Mensagem ajustada
             Snackbar.LENGTH_LONG
         ).show()
 
-        // Navegar de volta para login após um pequeno delay, passando os dados de registro
         binding.root.postDelayed({
             val intent = Intent(this, LoginActivity::class.java).apply {
                 putExtra("registered_email", binding.etEmail.text.toString().trim())
-                putExtra("registered_name", binding.etName.text.toString().trim())
-                putExtra("registered_age", binding.etAge.text.toString().trim().toIntOrNull())
-                putExtra("registered_city", binding.etCity.text.toString().trim())
-                putExtra("registered_gender", getSelectedGender())
+                // Remover outros extras, pois o perfil será criado no backend
             }
             startActivity(intent)
             finish()

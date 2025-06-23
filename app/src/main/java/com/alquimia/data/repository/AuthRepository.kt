@@ -1,88 +1,117 @@
 package com.alquimia.data.repository
 
-import android.content.Context
-import androidx.credentials.CredentialManager
-import androidx.credentials.GetCredentialRequest
-import com.alquimia.BuildConfig
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import io.github.jan.supabase.gotrue.GoTrue
-import io.github.jan.supabase.gotrue.providers.builtin.Email
-import io.github.jan.supabase.gotrue.providers.Google
-import io.github.jan.supabase.gotrue.user.UserSession
-import io.github.jan.supabase.postgrest.Postgrest
+import com.alquimia.data.model.AuthResponse
+import com.alquimia.data.model.LoginRequest
+import com.alquimia.data.model.RegisterRequest
+import com.alquimia.data.network.ApiService
+import com.alquimia.utils.Resource
+import com.google.gson.Gson
 import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class AuthRepository @Inject constructor(
-    private val goTrue: GoTrue,
-    private val postgrest: Postgrest
-) {
+interface AuthRepository {
+    suspend fun loginUser(request: LoginRequest, token: String): Resource<AuthResponse>
+    suspend fun registerUser(request: RegisterRequest, token: String): Resource<AuthResponse>
+    suspend fun loginWithGoogle(googleToken: String, token: String): Resource<AuthResponse>
+    suspend fun loginWithFacebook(facebookToken: String, token: String): Resource<AuthResponse>
+    suspend fun forgotPassword(email: String, token: String): Resource<AuthResponse>
+}
 
-    suspend fun signInWithEmail(email: String, password: String): Result<Unit> = try {
-        goTrue.loginWith(Email) {
-            this.email = email
-            this.password = password
+class AuthRepositoryImpl @Inject constructor(
+    private val apiService: ApiService
+) : AuthRepository {
+
+    override suspend fun loginUser(request: LoginRequest, token: String): Resource<AuthResponse> {
+        return try {
+            val response = apiService.loginUser(request, token)
+            if (response.isSuccessful) {
+                Resource.Success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = try {
+                    Gson().fromJson(errorBody, AuthResponse::class.java).message
+                } catch (e: Exception) {
+                    "Erro desconhecido no login"
+                }
+                Resource.Error(errorMessage)
+            }
+        } catch (e: Exception) {
+            Resource.Error("Erro de rede: ${e.localizedMessage}")
         }
-        Result.success(Unit)
-    } catch (e: Exception) {
-        Result.failure(e)
     }
 
-    suspend fun signUpWithEmail(email: String, password: String): Result<Unit> = try {
-        goTrue.signUpWith(Email) {
-            this.email = email
-            this.password = password
+    override suspend fun registerUser(request: RegisterRequest, token: String): Resource<AuthResponse> {
+        return try {
+            val response = apiService.registerUser(request, token)
+            if (response.isSuccessful) {
+                Resource.Success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = try {
+                    Gson().fromJson(errorBody, AuthResponse::class.java).message
+                } catch (e: Exception) {
+                    "Erro desconhecido no registro"
+                }
+                Resource.Error(errorMessage)
+            }
+        } catch (e: Exception) {
+            Resource.Error("Erro de rede: ${e.localizedMessage}")
         }
-        Result.success(Unit)
-    } catch (e: Exception) {
-        Result.failure(e)
     }
 
-    /**
-     * Realiza login com Google usando ID token obtido via Credentials API.
-     */
-    suspend fun signInWithGoogle(context: Context): Result<Unit> = try {
-        val credentialManager = CredentialManager.create(context)
-
-        val googleIdOption = GetGoogleIdOption.Builder()
-            .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
-            .build()
-
-        val request = GetCredentialRequest.Builder()
-            .addCredentialOption(googleIdOption)
-            .build()
-
-        val result = credentialManager.getCredential(context, request)
-        val credential = result.credential
-        val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
-        val idTokenValue = googleIdTokenCredential.idToken ?: throw Exception("ID Token is null")
-
-        // Aqui passamos o token para o provider Google na autenticação do Supabase
-        goTrue.signInWith(Google) {
-            this.idToken = idTokenValue
+    override suspend fun loginWithGoogle(googleToken: String, token: String): Resource<AuthResponse> {
+        return try {
+            val response = apiService.loginWithGoogle(googleToken, token)
+            if (response.isSuccessful) {
+                Resource.Success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = try {
+                    Gson().fromJson(errorBody, AuthResponse::class.java).message
+                } catch (e: Exception) {
+                    "Erro desconhecido no login com Google"
+                }
+                Resource.Error(errorMessage)
+            }
+        } catch (e: Exception) {
+            Resource.Error("Erro de rede: ${e.localizedMessage}")
         }
-        Result.success(Unit)
-    } catch (e: Exception) {
-        Result.failure(e)
     }
 
-    suspend fun resetPassword(email: String): Result<Unit> = try {
-        goTrue.sendRecoveryEmail(email)
-        Result.success(Unit)
-    } catch (e: Exception) {
-        Result.failure(e)
+    override suspend fun loginWithFacebook(facebookToken: String, token: String): Resource<AuthResponse> {
+        return try {
+            val response = apiService.loginWithFacebook(facebookToken, token)
+            if (response.isSuccessful) {
+                Resource.Success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = try {
+                    Gson().fromJson(errorBody, AuthResponse::class.java).message
+                } catch (e: Exception) {
+                    "Erro desconhecido no login com Facebook"
+                }
+                Resource.Error(errorMessage)
+            }
+        } catch (e: Exception) {
+            Resource.Error("Erro de rede: ${e.localizedMessage}")
+        }
     }
 
-    suspend fun signOut(): Result<Unit> = try {
-        goTrue.logout()
-        Result.success(Unit)
-    } catch (e: Exception) {
-        Result.failure(e)
+    override suspend fun forgotPassword(email: String, token: String): Resource<AuthResponse> {
+        return try {
+            val response = apiService.forgotPassword(email, token)
+            if (response.isSuccessful) {
+                Resource.Success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = try {
+                    Gson().fromJson(errorBody, AuthResponse::class.java).message
+                } catch (e: Exception) {
+                    "Erro desconhecido ao tentar recuperar a senha"
+                }
+                Resource.Error(errorMessage)
+            }
+        } catch (e: Exception) {
+            Resource.Error("Erro de rede: ${e.localizedMessage}")
+        }
     }
-
-    fun isUserLoggedIn(): Boolean = goTrue.currentSessionOrNull() != null
-
-    fun getCurrentSession(): UserSession? = goTrue.currentSessionOrNull()
 }

@@ -2,9 +2,7 @@ package com.alquimia.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.alquimia.data.models.User
 import com.alquimia.data.repository.AuthRepository
-import com.alquimia.data.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,8 +12,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class RegisterViewModel @Inject constructor(
-    private val authRepository: AuthRepository,
-    private val userRepository: UserRepository // Adicionado UserRepository
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<RegisterUiState>(RegisterUiState.Initial)
@@ -27,17 +24,24 @@ class RegisterViewModel @Inject constructor(
         name: String,
         age: Int,
         city: String,
-        gender: String
+        gender: String,
+        interests: List<String>? = null // Adicionar interesses
     ) {
         _uiState.value = RegisterUiState.Loading
 
         viewModelScope.launch {
-            // 1. Primeiro, criar a conta de autenticação
-            val signUpResult = authRepository.signUpWithEmail(email, password)
+            // Enviar todos os dados para o backend para criar a conta e o perfil
+            val signUpResult = authRepository.signUpWithEmail(
+                email = email,
+                password = password,
+                name = name,
+                age = age,
+                city = city,
+                gender = gender,
+                interests = interests
+            )
 
             if (signUpResult.isSuccess) {
-                // 2. Após confirmação do email e primeiro login, o perfil será criado
-                // Por enquanto, apenas indicamos sucesso no registro de autenticação
                 _uiState.value = RegisterUiState.Success
             } else {
                 _uiState.value = RegisterUiState.Error(
@@ -47,34 +51,8 @@ class RegisterViewModel @Inject constructor(
         }
     }
 
-    // Novo método para criar perfil após confirmação de email
-    suspend fun createUserProfile(
-        email: String,
-        name: String,
-        age: Int,
-        city: String,
-        gender: String
-    ): Result<Unit> {
-        return try {
-            // Obter o ID do usuário autenticado
-            val session = authRepository.getCurrentSession()
-            val userId = session?.user?.id ?: throw Exception("Usuário não autenticado")
-
-            val user = User(
-                id = userId,
-                email = email,
-                name = name,
-                age = age,
-                city = city,
-                gender = gender
-            )
-
-            userRepository.insertUser(user)
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
+    // Remover createUserProfile, pois o perfil será criado no backend junto com o registro
+    // suspend fun createUserProfile(...) { ... }
 
     fun resetState() {
         _uiState.value = RegisterUiState.Initial

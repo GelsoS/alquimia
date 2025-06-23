@@ -32,9 +32,16 @@ android {
             localProperties.load(localPropertiesFile.inputStream())
         }
 
-        buildConfigField("String", "SUPABASE_URL", "\"${localProperties.getProperty("SUPABASE_URL") ?: ""}\"")
-        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProperties.getProperty("SUPABASE_ANON_KEY") ?: ""}\"")
+        // Remover variáveis do Supabase
+        // buildConfigField("String", "SUPABASE_URL", "\"${localProperties.getProperty("SUPABASE_URL") ?: ""}\"")
+        // buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProperties.getProperty("SUPABASE_ANON_KEY") ?: ""}\"")
+
+        // Adicionar variável para o URL base do seu backend Node.js
+        buildConfigField("String", "BACKEND_BASE_URL", "\"${localProperties.getProperty("BACKEND_BASE_URL") ?: "http://10.0.2.2:3000"}\"") // 10.0.2.2 é o localhost do emulador Android
+
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${localProperties.getProperty("GOOGLE_WEB_CLIENT_ID") ?: ""}\"")
+        buildConfigField("String", "FACEBOOK_APP_ID", "\"${localProperties.getProperty("FACEBOOK_APP_ID") ?: ""}\"")
+        buildConfigField("String", "FACEBOOK_CLIENT_TOKEN", "\"${localProperties.getProperty("FACEBOOK_CLIENT_TOKEN") ?: ""}\"")
     }
 
     buildTypes {
@@ -67,11 +74,8 @@ android {
         }
     }
 
-    // Configurações do Kapt
     kapt {
         correctErrorTypes = true
-        useBuildCache = false
-        includeCompileClasspath = false
     }
 }
 
@@ -97,7 +101,7 @@ dependencies {
     implementation("com.github.bumptech.glide:glide:4.16.0")
     kapt("com.github.bumptech.glide:compiler:4.16.0")
 
-    // Serialization
+    // Serialization (manter para modelos de dados)
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
 
     // Location services
@@ -105,23 +109,32 @@ dependencies {
 
     // Google Sign-In - versões mais estáveis compatíveis com Android 34
     implementation("com.google.android.gms:play-services-auth:20.7.0")
-    implementation("androidx.credentials:credentials:1.2.0") // Versão estável compatível com Android 34
-    implementation("androidx.credentials:credentials-play-services-auth:1.2.0") // Versão estável compatível com Android 34
+    implementation("androidx.credentials:credentials:1.2.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.2.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.0")
 
-    // Supabase - versões mais estáveis
-    implementation(platform("io.github.jan-tennert.supabase:bom:1.4.7"))
-    implementation("io.github.jan-tennert.supabase:supabase-kt")
-    implementation("io.github.jan-tennert.supabase:postgrest-kt")
-    implementation("io.github.jan-tennert.supabase:gotrue-kt")
-    implementation("io.github.jan-tennert.supabase:storage-kt")
-    implementation("io.github.jan-tennert.supabase:realtime-kt")
-    //implementation("io.github.jan-tennert.supabase:gotrue-kt-android")
-    //implementation(platform("io.github.jan-tennert.supabase:bom:1.5.2"))
+    // REMOVER Supabase dependencies
+    // implementation("io.github.jan-tennert.supabase:supabase-kt:1.4.7")
+    // implementation("io.github.jan-tennert.supabase:postgrest-kt:1.4.7")
+    // implementation("io.github.jan-tennert.supabase:storage-kt:1.4.7")
+    // implementation("io.github.jan-tennert.supabase:realtime-kt:1.4.7")
+    // implementation("io.github.jan-tennert.supabase:gotrue-kt-android:1.4.8")
 
-    // Ktor Clients
-    implementation("io.ktor:ktor-client-core:2.3.4")
-    implementation("io.ktor:ktor-client-android:2.3.4")
+    // REMOVER Ktor Clients
+    // implementation("io.ktor:ktor-client-core:2.3.4")
+    // implementation("io.ktor:ktor-client-android:2.3.4")
+
+    // Facebook Login SDK
+    implementation("com.facebook.android:facebook-login:17.0.0")
+
+    // Splash Screen API
+    implementation("androidx.core:core-splashscreen:1.0.1")
+
+    // Retrofit and GSON <--- ADICIONAR ESTAS DEPENDÊNCIAS
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:okhttp:4.11.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0") // Para logs de rede
 
     // Testing
     testImplementation("junit:junit:4.13.2")

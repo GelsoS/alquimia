@@ -9,34 +9,60 @@ import androidx.lifecycle.lifecycleScope
 import com.alquimia.databinding.ActivityLoginBinding
 import com.alquimia.ui.viewmodels.LoginUiState
 import com.alquimia.ui.viewmodels.LoginViewModel
+import com.facebook.CallbackManager
+import com.facebook.FacebookCallback
+import com.facebook.FacebookException
+import com.facebook.login.LoginManager
+import com.facebook.login.LoginResult
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import java.util.*
 
 @AndroidEntryPoint
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLoginBinding
     private val viewModel: LoginViewModel by viewModels()
+    private lateinit var callbackManager: CallbackManager // Para Facebook Login
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Inicializar CallbackManager para Facebook Login
+        callbackManager = CallbackManager.Factory.create()
+        LoginManager.getInstance().registerCallback(callbackManager, object : FacebookCallback<LoginResult> {
+            override fun onSuccess(result: LoginResult) {
+                val accessToken = result.accessToken.token
+                viewModel.signInWithFacebook(accessToken)
+            }
+
+            override fun onCancel() {
+                Snackbar.make(binding.root, "Login com Facebook cancelado.", Snackbar.LENGTH_SHORT).show()
+                viewModel.resetState() // Resetar estado de loading
+            }
+
+            override fun onError(error: FacebookException) {
+                Snackbar.make(binding.root, "Erro no login com Facebook: ${error.message}", Snackbar.LENGTH_LONG).show()
+                viewModel.resetState() // Resetar estado de loading
+            }
+        })
+
         // Receber dados de registro se vierem do RegisterActivity
         intent.getStringExtra("registered_email")?.let { email ->
             binding.etEmail.setText(email)
-            val name = intent.getStringExtra("registered_name")
-            val age = intent.getIntExtra("registered_age", 0).takeIf { it != 0 }
-            val city = intent.getStringExtra("registered_city")
-            val gender = intent.getStringExtra("registered_gender")
-            viewModel.initRegistrationData(name, age, city, gender)
-            Snackbar.make(binding.root, "Confirme seu email e faça login.", Snackbar.LENGTH_LONG).show()
+            Snackbar.make(binding.root, "Conta criada! Faça login.", Snackbar.LENGTH_LONG).show()
         }
 
         setupUI()
         observeViewModel()
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        callbackManager.onActivityResult(requestCode, resultCode, data) // Para Facebook Login
+        super.onActivityResult(requestCode, resultCode, data)
     }
 
     private fun setupUI() {
@@ -51,6 +77,10 @@ class LoginActivity : AppCompatActivity() {
 
         binding.btnGoogle.setOnClickListener {
             viewModel.signInWithGoogle(this)
+        }
+
+        binding.btnFacebook.setOnClickListener {
+            LoginManager.getInstance().logInWithReadPermissions(this, Arrays.asList("email", "public_profile"))
         }
 
         binding.tvForgotPassword.setOnClickListener {
@@ -106,12 +136,14 @@ class LoginActivity : AppCompatActivity() {
         binding.progressBar.visibility = View.VISIBLE
         binding.btnLogin.isEnabled = false
         binding.btnGoogle.isEnabled = false
+        binding.btnFacebook.isEnabled = false
     }
 
     private fun hideLoading() {
         binding.progressBar.visibility = View.GONE
         binding.btnLogin.isEnabled = true
         binding.btnGoogle.isEnabled = true
+        binding.btnFacebook.isEnabled = true
     }
 
     private fun showError(message: String) {
