@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Cor de fundo da splash screen -->
+    <item android:drawable="@color/primary" /> <!-- Usando sua cor primary definida em colors.xml -->
+
+    <!-- Logotipo centralizado -->
+    <item>
+        <bitmap
+            android:gravity="center"
+            android:src="@drawable/alquimiaicon" />
+    </item>
+</layer-list>
