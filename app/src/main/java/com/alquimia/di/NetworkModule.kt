@@ -1,12 +1,12 @@
 package com.alquimia.di
 
-import android.content.Context // Adicionar esta importação
+import android.content.Context
 import com.alquimia.data.local.SharedPreferencesManager
 import com.alquimia.data.remote.ApiService
 import com.alquimia.data.remote.AuthInterceptor
 import com.alquimia.data.remote.TokenManager
 import com.alquimia.data.repository.AuthRepository
-import com.alquimia.data.repository.AuthRepositoryImpl
+import com.alquimia.data.repository.AuthRepositoryImpl // Certifique-se de que esta importação está presente
 import com.alquimia.data.repository.ChatRepository
 import com.alquimia.data.repository.ChatRepositoryImpl
 import com.alquimia.data.repository.UserRepository
@@ -14,7 +14,7 @@ import com.alquimia.data.repository.UserRepositoryImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext // Adicionar esta importação
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -38,7 +38,7 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideSharedPreferencesManager(
-        @ApplicationContext context: Context // Agora o Context está corretamente anotado
+        @ApplicationContext context: Context
     ): SharedPreferencesManager {
         return SharedPreferencesManager(context)
     }
@@ -83,18 +83,21 @@ object NetworkModule {
         return retrofit.create(ApiService::class.java)
     }
 
+    // CORREÇÃO AQUI: Fornecer AuthRepositoryImpl como implementação de AuthRepository
     @Provides
     @Singleton
     fun provideAuthRepository(apiService: ApiService): AuthRepository {
         return AuthRepositoryImpl(apiService)
     }
 
+    // CORREÇÃO AQUI: Fornecer UserRepositoryImpl como implementação de UserRepository
     @Provides
     @Singleton
     fun provideUserRepository(apiService: ApiService): UserRepository {
         return UserRepositoryImpl(apiService)
     }
 
+    // CORREÇÃO AQUI: Fornecer ChatRepositoryImpl como implementação de ChatRepository
     @Provides
     @Singleton
     fun provideChatRepository(apiService: ApiService): ChatRepository {

@@ -30,10 +30,10 @@ class UserProfileViewModel @Inject constructor(
 
     fun fetchUserProfile(userId: String) {
         viewModelScope.launch {
-            _userProfile.value = Resource.Loading()
+            _userProfile.value = Resource.Loading() // Removido o tipo explícito, inferido
             val token = TokenManager.authToken
             if (token == null) {
-                _userProfile.value = Resource.Error("Token de autenticação não encontrado.")
+                _userProfile.value = Resource.Error("Token de autenticação não encontrado.") // Removido o tipo explícito
                 return@launch
             }
             _userProfile.value = userRepository.getUserProfile(userId, token)
@@ -42,10 +42,10 @@ class UserProfileViewModel @Inject constructor(
 
     fun updateProfile(userId: String, request: UpdateUserRequest) {
         viewModelScope.launch {
-            _updateProfileState.value = Resource.Loading()
+            _updateProfileState.value = Resource.Loading() // Removido o tipo explícito
             val token = TokenManager.authToken
             if (token == null) {
-                _updateProfileState.value = Resource.Error("Token de autenticação não encontrado.")
+                _updateProfileState.value = Resource.Error("Token de autenticação não encontrado.") // Removido o tipo explícito
                 return@launch
             }
             _updateProfileState.value = userRepository.updateUserProfile(userId, request, token)
@@ -54,10 +54,10 @@ class UserProfileViewModel @Inject constructor(
 
     fun uploadProfilePicture(userId: String, imageFile: File) {
         viewModelScope.launch {
-            _uploadPictureState.value = Resource.Loading()
+            _uploadPictureState.value = Resource.Loading() // Removido o tipo explícito
             val token = TokenManager.authToken
             if (token == null) {
-                _uploadPictureState.value = Resource.Error("Token de autenticação não encontrado.")
+                _uploadPictureState.value = Resource.Error("Token de autenticação não encontrado.") // Removido o tipo explícito
                 return@launch
             }
             _uploadPictureState.value = userRepository.uploadProfilePicture(userId, imageFile, token)

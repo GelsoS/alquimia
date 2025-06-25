@@ -1,17 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
-        android:id="@+id/messagesFragment"
-        android:icon="@drawable/ic_email"
-        android:title="Mensagens" />
-    
-    <item
         android:id="@+id/profilesFragment"
-        android:icon="@drawable/ic_search"
+        android:icon="@android:drawable/ic_menu_search"
         android:title="Descobrir" />
-    
+    <item
+        android:id="@+id/chatListFragment"
+        android:icon="@android:drawable/ic_menu_send"
+        android:title="Chats" />
     <item
         android:id="@+id/settingsFragment"
-        android:icon="@drawable/ic_person"
-        android:title="Perfil" />
+        android:icon="@android:drawable/ic_menu_manage"
+        android:title="Configurações" />
 </menu>

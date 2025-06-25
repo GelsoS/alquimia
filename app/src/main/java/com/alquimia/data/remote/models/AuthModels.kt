@@ -26,7 +26,7 @@ data class RegisterRequest(
     val age: Int,
     val city: String,
     val gender: String,
-    val interests: List<String>
+    val interests: List<String>? // Tornar interests anulável para flexibilidade
 )
 
 // Requisição de login social (Google/Facebook)
@@ -39,7 +39,7 @@ data class ForgotPasswordRequest(
     val email: String
 )
 
-// NOVO: Modelo para respostas de erro genéricas da API
+// Modelo para respostas de erro genéricas da API
 data class ErrorResponse(
     val success: Boolean,
     val message: String,

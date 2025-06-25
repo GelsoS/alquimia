@@ -8,6 +8,8 @@ import com.alquimia.data.remote.models.RegisterRequest
 import com.alquimia.data.repository.AuthRepository
 import com.alquimia.data.remote.TokenManager
 import com.alquimia.util.Resource
+import com.alquimia.data.remote.models.AuthResponse
+
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -23,14 +25,21 @@ class RegisterViewModel @Inject constructor(
     fun register(request: RegisterRequest) {
         viewModelScope.launch {
             _registerState.value = RegisterState.Loading
-            when (val result = authRepository.registerUser(request, "")) { // Token é adicionado pelo interceptor
-                is Resource.Success -> {
-                    TokenManager.authToken = result.data.token
-                    TokenManager.currentUserId = result.data.userId // Salvar o ID do usuário
-                    _registerState.value = RegisterState.Success(result.data.message)
+            when (val result = authRepository.registerUser(request)) {
+                is Resource.Success<AuthResponse> -> {
+                    result.data?.let { authResponse ->
+                        TokenManager.authToken = authResponse.token
+                        TokenManager.currentUserId = authResponse.userId
+                        _registerState.value = RegisterState.Success(authResponse.message)
+                    } ?: run {
+                        _registerState.value = RegisterState.Error("Dados de registro nulos inesperados.")
+                    }
                 }
-                is Resource.Error -> {
+                is Resource.Error<AuthResponse> -> {
                     _registerState.value = RegisterState.Error(result.message ?: "Erro desconhecido")
+                }
+                is Resource.Loading<AuthResponse> -> {
+                    // Já tratado acima
                 }
             }
         }

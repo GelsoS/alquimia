@@ -1,76 +1,53 @@
 package com.alquimia.ui.viewmodels
 
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.alquimia.data.models.User
-import com.alquimia.data.repository.AuthRepository
+import com.alquimia.data.remote.models.ConversationData
+import com.alquimia.data.remote.models.UserData
 import com.alquimia.data.repository.ChatRepository
 import com.alquimia.data.repository.UserRepository
+import com.alquimia.data.remote.TokenManager
+import com.alquimia.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class ProfileDetailViewModel @Inject constructor(
     private val userRepository: UserRepository,
-    private val chatRepository: ChatRepository,
-    private val authRepository: AuthRepository
+    private val chatRepository: ChatRepository
 ) : ViewModel() {
 
-    private val _user = MutableStateFlow<User?>(null)
-    val user: StateFlow<User?> = _user.asStateFlow()
+    private val _userProfile = MutableLiveData<Resource<UserData>>()
+    val userProfile: LiveData<Resource<UserData>> = _userProfile
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    private val _conversationState = MutableLiveData<Resource<ConversationData>>()
+    val conversationState: LiveData<Resource<ConversationData>> = _conversationState
 
-    private val _chatTime = MutableStateFlow(0)
-    val chatTime: StateFlow<Int> = _chatTime.asStateFlow()
-
-    private val _blurStatus = MutableStateFlow(100)
-    val blurStatus: StateFlow<Int> = _blurStatus.asStateFlow()
-
-    private val _errorMessage = MutableStateFlow("")
-    val errorMessage: StateFlow<String> = _errorMessage.asStateFlow()
-
-    fun loadUserProfile(profileUserId: String) {
-        _isLoading.value = true
-        _errorMessage.value = ""
-
+    fun fetchUserProfile(userId: String) {
         viewModelScope.launch {
-            // Carregar dados do usuário do perfil
-            val userResult = userRepository.getUserById(profileUserId)
-            userResult.onSuccess { userProfile ->
-                _user.value = userProfile
-            }.onFailure { e ->
-                _errorMessage.value = e.message ?: "Erro ao carregar perfil do usuário"
+            _userProfile.value = Resource.Loading()
+            val token = TokenManager.authToken
+            if (token == null) {
+                _userProfile.value = Resource.Error("Token de autenticação não encontrado.")
+                return@launch
             }
-
-            // Carregar dados da conversa (se existir)
-            val currentUserId = authRepository.getCurrentSession()?.user?.id
-            if (currentUserId != null && currentUserId != profileUserId) { // Não tentar criar conversa consigo mesmo
-                val conversationResult = chatRepository.getOrCreateConversation(currentUserId, profileUserId)
-                conversationResult.onSuccess { conversation ->
-                    _chatTime.value = conversation.total_chat_time
-                    _blurStatus.value = conversation.blur_status
-                }.onFailure { e ->
-                    _errorMessage.value = _errorMessage.value + "\n" + (e.message ?: "Erro ao carregar dados da conversa")
-                }
-            } else if (currentUserId == profileUserId) {
-                // Se for o próprio usuário, não há conversa para carregar aqui
-                _chatTime.value = 0
-                _blurStatus.value = 100
-            } else {
-                _errorMessage.value = _errorMessage.value + "\n" + "Usuário não autenticado para carregar dados da conversa."
-            }
-
-            _isLoading.value = false
+            _userProfile.value = userRepository.getUserProfile(userId, token)
         }
     }
 
-    fun resetErrorMessage() {
-        _errorMessage.value = ""
+    fun getOrCreateConversation(otherUserId: String) {
+        viewModelScope.launch {
+            _conversationState.value = Resource.Loading()
+            val currentUserId = TokenManager.currentUserId
+            val token = TokenManager.authToken
+            if (currentUserId == null || token == null) {
+                _conversationState.value = Resource.Error("Usuário não logado ou token não encontrado.")
+                return@launch
+            }
+            _conversationState.value = chatRepository.getOrCreateConversation(currentUserId, otherUserId, token)
+        }
     }
 }

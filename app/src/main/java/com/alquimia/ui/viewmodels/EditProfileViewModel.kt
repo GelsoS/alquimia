@@ -1,150 +1,70 @@
 package com.alquimia.ui.viewmodels
 
-import android.content.Context
-import android.net.Uri
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.alquimia.data.models.User
-import com.alquimia.data.repository.AuthRepository
+import com.alquimia.data.remote.models.UpdateUserRequest
+import com.alquimia.data.remote.models.UserData
 import com.alquimia.data.repository.UserRepository
+import com.alquimia.data.remote.TokenManager
+import com.alquimia.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
 class EditProfileViewModel @Inject constructor(
-    private val userRepository: UserRepository,
-    private val authRepository: AuthRepository
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
-    private val _user = MutableStateFlow<User?>(null)
-    val user: StateFlow<User?> = _user.asStateFlow()
+    private val _userProfile = MutableLiveData<Resource<UserData>>()
+    val userProfile: LiveData<Resource<UserData>> = _userProfile
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    private val _updateProfileState = MutableLiveData<Resource<UserData>>()
+    val updateProfileState: LiveData<Resource<UserData>> = _updateProfileState
 
-    private val _isUploading = MutableStateFlow(false)
-    val isUploading: StateFlow<Boolean> = _isUploading.asStateFlow()
+    private val _uploadPictureState = MutableLiveData<Resource<String>>()
+    val uploadPictureState: LiveData<Resource<String>> = _uploadPictureState
 
-    private val _uploadSuccess = MutableStateFlow(false)
-    val uploadSuccess: StateFlow<Boolean> = _uploadSuccess.asStateFlow()
-
-    private val _saveSuccess = MutableStateFlow(false)
-    val saveSuccess: StateFlow<Boolean> = _saveSuccess.asStateFlow()
-
-    private val _errorMessage = MutableStateFlow("")
-    val errorMessage: StateFlow<String> = _errorMessage.asStateFlow()
-
-    init {
-        loadUserProfile()
-    }
-
-    private fun loadUserProfile() {
-        _isLoading.value = true
-        _errorMessage.value = ""
-
+    fun fetchUserProfile() {
         viewModelScope.launch {
-            val currentUserId = authRepository.getCurrentSession()?.user?.id
-            if (currentUserId != null) {
-                val result = userRepository.getUserById(currentUserId)
-
-                result.onSuccess { userProfile ->
-                    _user.value = userProfile
-                }.onFailure { e ->
-                    _errorMessage.value = e.message ?: "Erro ao carregar perfil"
-                }
-            } else {
-                _errorMessage.value = "Usuário não autenticado."
-            }
-            _isLoading.value = false
-        }
-    }
-
-    fun uploadProfilePicture(context: Context, imageUri: Uri) {
-        _isUploading.value = true
-        _uploadSuccess.value = false
-        _errorMessage.value = ""
-
-        viewModelScope.launch {
-            try {
-                val inputStream = context.contentResolver.openInputStream(imageUri)
-                val bytes = inputStream?.readBytes() ?: throw Exception("Erro ao ler imagem")
-
-                val fileName = "profile_${System.currentTimeMillis()}.jpg"
-                val userId = authRepository.getCurrentSession()?.user?.id ?: throw Exception("Usuário não autenticado para upload.")
-
-                val result = userRepository.uploadProfilePicture(userId, bytes, fileName)
-
-                result.onSuccess { imageUrl ->
-                    _uploadSuccess.value = true
-                    viewModelScope.launch {
-                        val updateResult = userRepository.updateProfilePicture(userId, imageUrl)
-                        updateResult.onSuccess {
-                            _user.value = _user.value?.copy(profile_picture = imageUrl)
-                        }.onFailure { e ->
-                            _errorMessage.value = e.message ?: "Erro ao atualizar URL da imagem no perfil"
-                        }
-                    }
-                }.onFailure { e ->
-                    _errorMessage.value = e.message ?: "Erro ao fazer upload da imagem"
-                }
-
-            } catch (e: Exception) {
-                _errorMessage.value = e.message ?: "Erro desconhecido ao processar imagem"
-            } finally {
-                _isUploading.value = false
-            }
-        }
-    }
-
-    fun updateUserProfile(name: String, age: Int, city: String, gender: String, interests: List<String>?) {
-        _isLoading.value = true
-        _saveSuccess.value = false
-        _errorMessage.value = ""
-
-        viewModelScope.launch {
-            val currentUserId = authRepository.getCurrentSession()?.user?.id
-            if (currentUserId == null) {
-                _errorMessage.value = "Usuário não autenticado para salvar perfil."
-                _isLoading.value = false
+            _userProfile.value = Resource.Loading()
+            val userId = TokenManager.currentUserId
+            val token = TokenManager.authToken
+            if (userId == null || token == null) {
+                _userProfile.value = Resource.Error("Usuário não logado ou token não encontrado.")
                 return@launch
             }
-
-            val currentUser = _user.value ?: User(id = currentUserId, email = authRepository.getCurrentSession()?.user?.email ?: "", name = "", age = 0, city = "", gender = "")
-
-            val updatedUser = currentUser.copy(
-                name = name,
-                age = age,
-                city = city,
-                gender = gender,
-                interests = interests // Atualizar interesses
-            )
-
-            val result = userRepository.updateUser(updatedUser)
-
-            result.onSuccess {
-                _user.value = updatedUser
-                _saveSuccess.value = true
-            }.onFailure { e ->
-                _errorMessage.value = e.message ?: "Erro ao salvar perfil"
-            }
-
-            _isLoading.value = false
+            _userProfile.value = userRepository.getUserProfile(userId, token)
         }
     }
 
-    fun resetUploadSuccess() {
-        _uploadSuccess.value = false
+    fun updateProfile(name: String?, age: Int?, city: String?, gender: String?, interests: List<String>?) {
+        viewModelScope.launch {
+            _updateProfileState.value = Resource.Loading()
+            val userId = TokenManager.currentUserId
+            val token = TokenManager.authToken
+            if (userId == null || token == null) {
+                _updateProfileState.value = Resource.Error("Usuário não logado ou token não encontrado.")
+                return@launch
+            }
+            val request = UpdateUserRequest(name, age, city, gender, interests)
+            _updateProfileState.value = userRepository.updateUserProfile(userId, request, token)
+        }
     }
 
-    fun resetSaveSuccess() {
-        _saveSuccess.value = false
-    }
-
-    fun resetErrorMessage() {
-        _errorMessage.value = ""
+    fun uploadProfilePicture(imageFile: File) {
+        viewModelScope.launch {
+            _uploadPictureState.value = Resource.Loading()
+            val userId = TokenManager.currentUserId
+            val token = TokenManager.authToken
+            if (userId == null || token == null) {
+                _uploadPictureState.value = Resource.Error("Usuário não logado ou token não encontrado.")
+                return@launch
+            }
+            _uploadPictureState.value = userRepository.uploadProfilePicture(userId, imageFile, token)
+        }
     }
 }

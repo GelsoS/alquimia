@@ -4,31 +4,26 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
-import com.alquimia.R
-import com.alquimia.data.models.User
 import com.alquimia.databinding.FragmentProfileDetailBinding
 import com.alquimia.ui.viewmodels.ProfileDetailViewModel
-import com.bumptech.glide.Glide
-import com.google.android.material.chip.Chip
+import com.alquimia.util.Resource
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class ProfileDetailFragment : Fragment() {
 
     private var _binding: FragmentProfileDetailBinding? = null
     private val binding get() = _binding!!
-    private val viewModel: ProfileDetailViewModel by viewModels()
+    private val profileDetailViewModel: ProfileDetailViewModel by viewModels()
     private val args: ProfileDetailFragmentArgs by navArgs()
 
     override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
+        inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentProfileDetailBinding.inflate(inflater, container, false)
@@ -38,87 +33,69 @@ class ProfileDetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        setupUI()
-        observeViewModel()
-        viewModel.loadUserProfile(args.userId) // Carregar perfil do usuário passado via argumento
+        val userId = args.userId
+        profileDetailViewModel.fetchUserProfile(userId)
+
+        setupObservers()
+        setupListeners(userId)
     }
 
-    private fun setupUI() {
-        binding.toolbar.setNavigationOnClickListener {
-            findNavController().navigateUp()
+    private fun setupObservers() {
+        profileDetailViewModel.userProfile.observe(viewLifecycleOwner) { resource ->
+            when (resource) {
+                is Resource.Loading -> {
+                    binding.tvProfileDetailInfo.text = "Carregando perfil..."
+                }
+                is Resource.Success -> {
+                    resource.data?.let { user ->
+                        binding.tvProfileDetailInfo.text = """
+                            Nome: ${user.name}
+                            Email: ${user.email}
+                            Idade: ${user.age}
+                            Cidade: ${user.city}
+                            Gênero: ${user.gender}
+                            Interesses: ${user.interests?.joinToString(", ") ?: "Nenhum"}
+                            Foto: ${user.profilePicture ?: "N/A"}
+                        """.trimIndent()
+                    } ?: run {
+                        binding.tvProfileDetailInfo.text = "Erro: Dados do perfil nulos inesperados."
+                        Toast.makeText(requireContext(), "Erro: Dados do perfil nulos inesperados.", Toast.LENGTH_LONG).show()
+                    }
+                }
+                is Resource.Error -> {
+                    binding.tvProfileDetailInfo.text = "Erro ao carregar perfil: ${resource.message}"
+                    Toast.makeText(requireContext(), resource.message, Toast.LENGTH_LONG).show()
+                }
+            }
         }
 
+        profileDetailViewModel.conversationState.observe(viewLifecycleOwner) { resource ->
+            when (resource) {
+                is Resource.Loading -> {
+                    Toast.makeText(requireContext(), "Criando/obtendo conversa...", Toast.LENGTH_SHORT).show()
+                }
+                is Resource.Success -> {
+                    resource.data?.let { conversation ->
+                        Toast.makeText(requireContext(), "Conversa pronta!", Toast.LENGTH_SHORT).show()
+                        val action = ProfileDetailFragmentDirections.actionProfileDetailFragmentToMessagesFragment(
+                            conversation.id,
+                            conversation.otherUser?.id ?: args.userId
+                        )
+                        findNavController().navigate(action)
+                    } ?: run {
+                        Toast.makeText(requireContext(), "Erro: Dados da conversa nulos inesperados.", Toast.LENGTH_LONG).show()
+                    }
+                }
+                is Resource.Error -> {
+                    Toast.makeText(requireContext(), "Erro ao iniciar conversa: ${resource.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun setupListeners(otherUserId: String) {
         binding.btnStartChat.setOnClickListener {
-            // Navegar para a tela de mensagens, passando o ID do usuário do perfil
-            val action = ProfileDetailFragmentDirections.actionProfileDetailFragmentToMessagesFragment(args.userId)
-            findNavController().navigate(action)
-        }
-    }
-
-    private fun observeViewModel() {
-        lifecycleScope.launch {
-            viewModel.user.collect { user ->
-                user?.let {
-                    displayUserProfile(it)
-                }
-            }
-        }
-
-        lifecycleScope.launch {
-            viewModel.isLoading.collect { isLoading ->
-                binding.progressBarDetail.visibility = if (isLoading) View.VISIBLE else View.GONE
-                binding.btnStartChat.isEnabled = !isLoading
-            }
-        }
-
-        lifecycleScope.launch {
-            viewModel.chatTime.collect { chatTime ->
-                binding.tvChatTime.text = "${chatTime} min"
-            }
-        }
-
-        lifecycleScope.launch {
-            viewModel.blurStatus.collect { blurStatus ->
-                binding.tvChemistryLevel.text = "🧪 ${blurStatus}%"
-            }
-        }
-
-        lifecycleScope.launch {
-            viewModel.errorMessage.collect { message ->
-                if (message.isNotEmpty()) {
-                    binding.tvError.text = message
-                    binding.cardError.visibility = View.VISIBLE
-                } else {
-                    binding.cardError.visibility = View.GONE
-                }
-            }
-        }
-    }
-
-    private fun displayUserProfile(user: User) {
-        binding.tvUserName.text = user.name
-        binding.tvUserAgeCity.text = "${user.age} anos • ${user.city}"
-        binding.tvUserGender.text = "Gênero: ${user.gender}"
-
-        Glide.with(requireContext())
-            .load(user.profile_picture)
-            .placeholder(R.drawable.ic_person)
-            .into(binding.ivProfilePicture)
-
-        binding.chipGroupInterests.removeAllViews()
-        user.interests?.forEach { interest ->
-            val chip = Chip(requireContext())
-            chip.text = interest
-            chip.isClickable = false
-            chip.isCheckable = false
-            binding.chipGroupInterests.addView(chip)
-        }
-        if (user.interests.isNullOrEmpty()) {
-            val chip = Chip(requireContext())
-            chip.text = "Nenhum interesse adicionado"
-            chip.isClickable = false
-            chip.isCheckable = false
-            binding.chipGroupInterests.addView(chip)
+            profileDetailViewModel.getOrCreateConversation(otherUserId)
         }
     }
 

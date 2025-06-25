@@ -1,11 +1,12 @@
 package com.alquimia.data.repository
 
 import com.alquimia.data.remote.ApiService
-import com.alquimia.data.remote.models.ErrorResponse // Importar o novo modelo de erro
+import com.alquimia.data.remote.models.ErrorResponse // Importar o modelo de erro
 import com.alquimia.data.remote.models.UpdateUserRequest
 import com.alquimia.data.remote.models.UserData
+import com.alquimia.data.remote.models.UserProfileResponse
 import com.alquimia.data.remote.models.UsersResponse
-import com.alquimia.util.Resource
+import com.alquimia.util.Resource // Importar a classe Resource
 import com.google.gson.Gson
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -40,15 +41,14 @@ class UserRepositoryImpl @Inject constructor(
             } else {
                 val errorBody = response.errorBody()?.string()
                 val errorMessage = try {
-                    // Tentar parsear como ErrorResponse
                     Gson().fromJson(errorBody, ErrorResponse::class.java).message
                 } catch (e: Exception) {
                     "Erro desconhecido ao buscar perfil"
                 }
-                Resource.Error(errorMessage, null) // Passar null para data, pois é um erro
+                Resource.Error(errorMessage, null)
             }
         } catch (e: Exception) {
-            Resource.Error("Erro de rede: ${e.localizedMessage}", null) // Passar null para data
+            Resource.Error("Erro de rede: ${e.localizedMessage}", null)
         }
     }
 

@@ -1,82 +1,40 @@
 package com.alquimia.ui.viewmodels
 
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.alquimia.data.models.User
-import com.alquimia.data.repository.AuthRepository
+import com.alquimia.data.remote.models.UserData
 import com.alquimia.data.repository.UserRepository
+import com.alquimia.data.remote.TokenManager
+import com.alquimia.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val authRepository: AuthRepository,
-    private val userRepository: UserRepository // Injetar UserRepository
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
-    private val _logoutState = MutableStateFlow<LogoutUiState>(LogoutUiState.Initial)
-    val logoutState: StateFlow<LogoutUiState> = _logoutState.asStateFlow()
+    private val _userProfile = MutableLiveData<Resource<UserData>>()
+    val userProfile: LiveData<Resource<UserData>> = _userProfile
 
-    private val _user = MutableStateFlow<User?>(null)
-    val user: StateFlow<User?> = _user.asStateFlow()
-
-    private val _isLoadingProfile = MutableStateFlow(false)
-    val isLoadingProfile: StateFlow<Boolean> = _isLoadingProfile.asStateFlow()
-
-    private val _errorMessage = MutableStateFlow("")
-    val errorMessage: StateFlow<String> = _errorMessage.asStateFlow()
-
-    init {
-        loadCurrentUserProfile()
-    }
-
-    fun loadCurrentUserProfile() {
-        _isLoadingProfile.value = true
-        _errorMessage.value = ""
+    fun fetchUserProfile() {
         viewModelScope.launch {
-            val currentUserId = authRepository.getCurrentSession()?.user?.id
-            if (currentUserId != null) {
-                val result = userRepository.getUserById(currentUserId)
-                result.onSuccess { userProfile ->
-                    _user.value = userProfile
-                }.onFailure { e ->
-                    _errorMessage.value = e.message ?: "Erro ao carregar perfil"
-                }
-            } else {
-                _errorMessage.value = "Usuário não autenticado."
+            _userProfile.value = Resource.Loading()
+            val userId = TokenManager.currentUserId
+            val token = TokenManager.authToken
+            if (userId == null || token == null) {
+                _userProfile.value = Resource.Error("Usuário não logado ou token não encontrado.")
+                return@launch
             }
-            _isLoadingProfile.value = false
+            _userProfile.value = userRepository.getUserProfile(userId, token)
         }
     }
 
-    fun signOut() {
-        _logoutState.value = LogoutUiState.Loading
-        viewModelScope.launch {
-            val result = authRepository.signOut()
-            _logoutState.value = if (result.isSuccess) {
-                LogoutUiState.Success
-            } else {
-                LogoutUiState.Error(result.exceptionOrNull()?.message ?: "Erro ao fazer logout")
-            }
-        }
+    fun logout() {
+        TokenManager.clearSession()
+        _userProfile.value = Resource.Success(null) // Indica que o usuário está deslogado
     }
-
-    fun resetLogoutState() {
-        _logoutState.value = LogoutUiState.Initial
-    }
-
-    fun resetErrorMessage() {
-        _errorMessage.value = ""
-    }
-}
-
-sealed class LogoutUiState {
-    object Initial : LogoutUiState()
-    object Loading : LogoutUiState()
-    object Success : LogoutUiState()
-    data class Error(val message: String) : LogoutUiState()
 }

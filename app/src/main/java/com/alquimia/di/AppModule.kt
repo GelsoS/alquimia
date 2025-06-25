@@ -2,8 +2,11 @@ package com.alquimia.di
 
 import com.alquimia.data.remote.ApiService
 import com.alquimia.data.repository.AuthRepository
+import com.alquimia.data.repository.AuthRepositoryImpl // Importar a implementação
 import com.alquimia.data.repository.ChatRepository
+import com.alquimia.data.repository.ChatRepositoryImpl // Importar a implementação
 import com.alquimia.data.repository.UserRepository
+import com.alquimia.data.repository.UserRepositoryImpl // Importar a implementação
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -33,20 +36,18 @@ object AppModule {
     @Provides
     @Singleton
     fun provideAuthRepository(apiService: ApiService): AuthRepository { // Injetar ApiService
-        return AuthRepository(apiService)
+        return AuthRepositoryImpl(apiService) // Retornar a implementação
     }
 
     @Provides
     @Singleton
     fun provideUserRepository(apiService: ApiService): UserRepository { // Injetar ApiService
-        // A implementação de UserRepository precisará ser atualizada para usar ApiService
-        return UserRepository(apiService)
+        return UserRepositoryImpl(apiService) // Retornar a implementação
     }
 
     @Provides
     @Singleton
     fun provideChatRepository(apiService: ApiService): ChatRepository { // Injetar ApiService
-        // A implementação de ChatRepository precisará ser atualizada para usar ApiService
-        return ChatRepository(apiService)
+        return ChatRepositoryImpl(apiService) // Retornar a implementação
     }
 }

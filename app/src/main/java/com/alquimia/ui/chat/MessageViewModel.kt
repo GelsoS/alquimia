@@ -6,6 +6,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.alquimia.data.remote.models.ConversationData
 import com.alquimia.data.remote.models.MessageData
+import com.alquimia.data.remote.models.MessagesResponse // Importar MessagesResponse
+import com.alquimia.data.remote.models.SendMessageRequest // Importar SendMessageRequest
 import com.alquimia.data.repository.ChatRepository
 import com.alquimia.data.remote.TokenManager
 import com.alquimia.util.Resource
@@ -48,13 +50,17 @@ class MessageViewModel @Inject constructor(
                 return@launch
             }
             when (val result = chatRepository.getMessages(conversationId, token, page, limit)) {
-                is Resource.Success -> {
-                    _messages.value = Resource.Success(result.data.messages)
+                is Resource.Success<MessagesResponse> -> { // Especificar MessagesResponse
+                    result.data?.let { response -> // Usar ?.let
+                        _messages.value = Resource.Success(response.messages)
+                    } ?: run {
+                        _messages.value = Resource.Error("Dados de mensagens nulos inesperados.")
+                    }
                 }
-                is Resource.Error -> {
+                is Resource.Error<MessagesResponse> -> { // Especificar MessagesResponse
                     _messages.value = Resource.Error<List<MessageData>>(result.message ?: "Erro ao buscar mensagens")
                 }
-                is Resource.Loading -> {
+                is Resource.Loading<MessagesResponse> -> { // Especificar MessagesResponse
                     // Já tratado acima
                 }
             }

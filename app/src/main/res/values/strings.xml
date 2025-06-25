@@ -1,14 +1,8 @@
 <resources>
     <string name="app_name">Alquimia</string>
-    <string name="app_description">A química perfeita te espera</string>
-    <string name="discover_title">Descobrir</string>
-    <string name="chemistry_building">Construindo química...</string>
-    <string name="perfect_match">Encontre sua fórmula perfeita</string>
-    <string name="alchemy_preferences">Preferências Alquímicas</string>
-    <string name="save_formula">Salvar Fórmula</string>
-    <string name="chemistry_level">Nível de Química</string>
-    <string name="building_connection">Construindo conexão...</string>
-    <!-- Adicione as strings para o Facebook -->
-    <string name="facebook_app_id">1046515147082677</string>
-    <string name="facebook_client_token">60fa98ab1a147d29024f1efcea1fb449</string>
+    <string-array name="gender_options">
+        <item>Masculino</item>
+        <item>Feminino</item>
+        <item>Não Informado</item>
+    </string-array>
 </resources>

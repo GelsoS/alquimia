@@ -1,44 +1,45 @@
 package com.alquimia.ui.viewmodels
 
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.alquimia.data.models.User
-import com.alquimia.data.repository.AuthRepository // Import AuthRepository
+import com.alquimia.data.remote.models.UserData
 import com.alquimia.data.repository.UserRepository
+import com.alquimia.data.remote.TokenManager
+import com.alquimia.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class ProfilesViewModel @Inject constructor(
-    private val userRepository: UserRepository,
-    private val authRepository: AuthRepository // Inject AuthRepository
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
-    private val _users = MutableStateFlow<List<User>>(emptyList())
-    val users: StateFlow<List<User>> = _users.asStateFlow()
+    private val _profiles = MutableLiveData<Resource<List<UserData>>>()
+    val profiles: LiveData<Resource<List<UserData>>> = _profiles
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
-    fun loadUsers() {
-        _isLoading.value = true
-
+    fun fetchAllProfiles() {
         viewModelScope.launch {
-            val currentUserId = authRepository.getCurrentSession()?.user?.id // Get current user ID
-            val result = userRepository.getAllUsers(excludeUserId = currentUserId) // Pass to repository
-
-            result.onSuccess { userList ->
-                _users.value = userList
-            }.onFailure {
-                _users.value = emptyList()
-                // Opcional: logar o erro ou mostrar uma mensagem para o usuário
+            _profiles.value = Resource.Loading()
+            val token = TokenManager.authToken
+            if (token == null) {
+                _profiles.value = Resource.Error("Token de autenticação não encontrado.")
+                return@launch
             }
-
-            _isLoading.value = false
+            // O backend já exclui o usuário atual automaticamente
+            when (val result = userRepository.getAllUsers(token)) {
+                is Resource.Success -> {
+                    _profiles.value = Resource.Success(result.data!!.users)
+                }
+                is Resource.Error -> {
+                    _profiles.value = Resource.Error(result.message ?: "Erro ao buscar perfis.")
+                }
+                is Resource.Loading -> {
+                    // Já tratado acima
+                }
+            }
         }
     }
 }

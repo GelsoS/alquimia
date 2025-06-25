@@ -1,44 +1,27 @@
 package com.alquimia.ui.fragments
 
-import android.app.Activity
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.lifecycleScope
-import androidx.navigation.fragment.findNavController
-import com.alquimia.R
-import com.alquimia.databinding.FragmentEditProfileBinding
+import com.alquimia.databinding.FragmentEditProfileBinding // Crie este binding
 import com.alquimia.ui.viewmodels.EditProfileViewModel
-import com.google.android.material.snackbar.Snackbar
-import com.bumptech.glide.Glide
+import com.alquimia.util.Resource
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
+import java.io.File // Importar File
 
 @AndroidEntryPoint
 class EditProfileFragment : Fragment() {
 
     private var _binding: FragmentEditProfileBinding? = null
     private val binding get() = _binding!!
-    private val viewModel: EditProfileViewModel by viewModels()
-
-    private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val imageUri: Uri? = result.data?.data
-            imageUri?.let {
-                viewModel.uploadProfilePicture(requireContext(), it)
-            }
-        }
-    }
+    private val editProfileViewModel: EditProfileViewModel by viewModels()
 
     override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
+        inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentEditProfileBinding.inflate(inflater, container, false)
@@ -48,158 +31,95 @@ class EditProfileFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        setupUI()
-        observeViewModel()
+        editProfileViewModel.fetchUserProfile()
+
+        setupObservers()
+        setupListeners()
     }
 
-    private fun setupUI() {
-        binding.toolbar.setNavigationOnClickListener {
-            findNavController().navigateUp()
+    private fun setupListeners() {
+        binding.btnSaveProfile.setOnClickListener {
+            val name = binding.etName.text.toString()
+            val age = binding.etAge.text.toString().toIntOrNull()
+            val city = binding.etCity.text.toString()
+            val gender = binding.spinnerGender.selectedItem?.toString() // Assumindo um Spinner
+
+            editProfileViewModel.updateProfile(name, age, city, gender, null) // Interesses nulos por enquanto
         }
 
         binding.btnUploadPicture.setOnClickListener {
-            openImagePicker()
-        }
-
-        binding.btnSaveProfile.setOnClickListener {
-            saveProfile()
+            // TODO: Implementar seletor de imagem e passar o File real
+            Toast.makeText(requireContext(), "Seletor de imagem não implementado", Toast.LENGTH_SHORT).show()
+            // Exemplo de como chamar (você precisaria de um File real)
+            // val dummyFile = File(requireContext().cacheDir, "dummy_image.jpg")
+            // editProfileViewModel.uploadProfilePicture(dummyFile)
         }
     }
 
-    private fun observeViewModel() {
-        lifecycleScope.launch {
-            viewModel.user.collect { user ->
-                user?.let {
-                    binding.etName.setText(it.name)
-                    binding.etAge.setText(it.age.toString())
-                    binding.etCity.setText(it.city)
-                    binding.etInterests.setText(it.interests?.joinToString(", ") ?: "") // Exibir interesses
-                    when (it.gender) {
-                        "Masculino" -> binding.rgGender.check(R.id.rbMale)
-                        "Feminino" -> binding.rgGender.check(R.id.rbFemale)
-                        "Não Informado" -> binding.rgGender.check(R.id.rbNotInformado)
-                        else -> binding.rgGender.clearCheck()
+    private fun setupObservers() {
+        editProfileViewModel.userProfile.observe(viewLifecycleOwner) { resource ->
+            when (resource) {
+                is Resource.Loading -> {
+                    binding.tvProfileStatus.text = "Carregando perfil..."
+                }
+                is Resource.Success -> {
+                    resource.data?.let { user ->
+                        binding.tvProfileStatus.text = """
+                            Nome: ${user.name}
+                            Email: ${user.email}
+                            Idade: ${user.age}
+                            Cidade: ${user.city}
+                            Gênero: ${user.gender}
+                            Interesses: ${user.interests?.joinToString(", ") ?: "Nenhum"}
+                            Foto: ${user.profilePicture ?: "N/A"}
+                        """.trimIndent()
+                        // Preencher campos de edição
+                        binding.etName.setText(user.name)
+                        binding.etAge.setText(user.age.toString())
+                        binding.etCity.setText(user.city)
+                        // TODO: Selecionar gênero no spinner
+                    } ?: run {
+                        binding.tvProfileStatus.text = "Erro: Dados do perfil nulos inesperados."
+                        Toast.makeText(requireContext(), "Erro: Dados do perfil nulos inesperados.", Toast.LENGTH_LONG).show()
                     }
-                    Glide.with(requireContext())
-                        .load(it.profile_picture)
-                        .placeholder(R.drawable.ic_person)
-                        .into(binding.ivProfilePicture)
+                }
+                is Resource.Error -> {
+                    binding.tvProfileStatus.text = "Erro ao carregar perfil: ${resource.message}"
+                    Toast.makeText(requireContext(), resource.message, Toast.LENGTH_LONG).show()
                 }
             }
         }
 
-        lifecycleScope.launch {
-            viewModel.isLoading.collect { isLoading ->
-                binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
-                binding.btnSaveProfile.isEnabled = !isLoading
-            }
-        }
-
-        lifecycleScope.launch {
-            viewModel.isUploading.collect { isUploading ->
-                binding.progressBar.visibility = if (isUploading) View.VISIBLE else View.GONE
-                binding.btnUploadPicture.isEnabled = !isUploading
-                binding.btnSaveProfile.isEnabled = !isUploading
-            }
-        }
-
-        lifecycleScope.launch {
-            viewModel.uploadSuccess.collect { success ->
-                if (success) {
-                    Snackbar.make(binding.root, "Foto de perfil atualizada!", Snackbar.LENGTH_SHORT).show()
-                    viewModel.resetUploadSuccess()
+        editProfileViewModel.updateProfileState.observe(viewLifecycleOwner) { resource ->
+            when (resource) {
+                is Resource.Loading -> {
+                    Toast.makeText(requireContext(), "Salvando perfil...", Toast.LENGTH_SHORT).show()
+                }
+                is Resource.Success -> {
+                    Toast.makeText(requireContext(), resource.message ?: "Perfil atualizado com sucesso!", Toast.LENGTH_SHORT).show()
+                    // Opcional: Recarregar perfil para garantir consistência
+                    editProfileViewModel.fetchUserProfile()
+                }
+                is Resource.Error -> {
+                    Toast.makeText(requireContext(), "Erro ao atualizar perfil: ${resource.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }
 
-        lifecycleScope.launch {
-            viewModel.saveSuccess.collect { success ->
-                if (success) {
-                    Snackbar.make(binding.root, "Perfil salvo com sucesso!", Snackbar.LENGTH_SHORT).show()
-                    viewModel.resetSaveSuccess()
-                    findNavController().navigateUp()
+        editProfileViewModel.uploadPictureState.observe(viewLifecycleOwner) { resource ->
+            when (resource) {
+                is Resource.Loading -> {
+                    Toast.makeText(requireContext(), "Fazendo upload da imagem...", Toast.LENGTH_SHORT).show()
+                }
+                is Resource.Success -> {
+                    Toast.makeText(requireContext(), "Upload de imagem concluído: ${resource.data}", Toast.LENGTH_SHORT).show()
+                    editProfileViewModel.fetchUserProfile() // Recarregar perfil para mostrar nova imagem
+                }
+                is Resource.Error -> {
+                    Toast.makeText(requireContext(), "Erro no upload da imagem: ${resource.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }
-
-        lifecycleScope.launch {
-            viewModel.errorMessage.collect { message ->
-                if (message.isNotEmpty()) {
-                    showError(message)
-                    viewModel.resetErrorMessage()
-                } else {
-                    hideError()
-                }
-            }
-        }
-    }
-
-    private fun openImagePicker() {
-        val intent = Intent(Intent.ACTION_PICK)
-        intent.type = "image/*"
-        pickImageLauncher.launch(intent)
-    }
-
-    private fun saveProfile() {
-        val name = binding.etName.text.toString().trim()
-        val age = binding.etAge.text.toString().trim().toIntOrNull()
-        val city = binding.etCity.text.toString().trim()
-        val gender = getSelectedGender()
-        val interestsText = binding.etInterests.text.toString().trim()
-        val interests = if (interestsText.isNotEmpty()) {
-            interestsText.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-        } else {
-            null
-        }
-
-        if (validateInput(name, age, city, gender)) {
-            viewModel.updateUserProfile(name, age!!, city, gender, interests)
-        }
-    }
-
-    private fun getSelectedGender(): String {
-        return when (binding.rgGender.checkedRadioButtonId) {
-            R.id.rbMale -> "Masculino"
-            R.id.rbFemale -> "Feminino"
-            R.id.rbNotInformado -> "Não Informado"
-            else -> ""
-        }
-    }
-
-    private fun validateInput(name: String, age: Int?, city: String, gender: String): Boolean {
-        var isValid = true
-        if (name.isEmpty()) {
-            binding.tilName.error = "Nome é obrigatório"
-            isValid = false
-        } else {
-            binding.tilName.error = null
-        }
-        if (age == null || age < 18) {
-            binding.tilAge.error = "Idade deve ser um número válido e maior que 18"
-            isValid = false
-        } else {
-            binding.tilAge.error = null
-        }
-        if (city.isEmpty()) {
-            binding.tilCity.error = "Cidade é obrigatória"
-            isValid = false
-        } else {
-            binding.tilCity.error = null
-        }
-        if (gender.isEmpty()) {
-            Snackbar.make(binding.root, "Selecione um gênero", Snackbar.LENGTH_SHORT).show()
-            isValid = false
-        }
-        return isValid
-    }
-
-    private fun showError(message: String) {
-        binding.tvError.text = message
-        binding.cardError.visibility = View.VISIBLE
-    }
-
-    private fun hideError() {
-        binding.cardError.visibility = View.GONE
     }
 
     override fun onDestroyView() {

@@ -1,12 +1,16 @@
 package com.alquimia.ui.viewmodels
 
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.alquimia.data.remote.models.RegisterRequest
 import com.alquimia.data.repository.AuthRepository
+import com.alquimia.data.remote.TokenManager
+import com.alquimia.util.Resource
+import com.alquimia.data.remote.models.AuthResponse
+
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -15,53 +19,35 @@ class RegisterViewModel @Inject constructor(
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<RegisterUiState>(RegisterUiState.Initial)
-    val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
+    private val _registerState = MutableLiveData<RegisterState>()
+    val registerState: LiveData<RegisterState> = _registerState
 
-    fun signUp(
-        email: String,
-        password: String,
-        name: String,
-        age: Int,
-        city: String,
-        gender: String,
-        interests: List<String>? = null // Adicionar interesses
-    ) {
-        _uiState.value = RegisterUiState.Loading
-
+    fun register(request: RegisterRequest) {
         viewModelScope.launch {
-            // Enviar todos os dados para o backend para criar a conta e o perfil
-            val signUpResult = authRepository.signUpWithEmail(
-                email = email,
-                password = password,
-                name = name,
-                age = age,
-                city = city,
-                gender = gender,
-                interests = interests
-            )
-
-            if (signUpResult.isSuccess) {
-                _uiState.value = RegisterUiState.Success
-            } else {
-                _uiState.value = RegisterUiState.Error(
-                    signUpResult.exceptionOrNull()?.message ?: "Erro no cadastro"
-                )
+            _registerState.value = RegisterState.Loading
+            when (val result = authRepository.registerUser(request)) {
+                is Resource.Success<AuthResponse> -> {
+                    result.data?.let { authResponse ->
+                        TokenManager.authToken = authResponse.token
+                        TokenManager.currentUserId = authResponse.userId
+                        _registerState.value = RegisterState.Success(authResponse.message)
+                    } ?: run {
+                        _registerState.value = RegisterState.Error("Dados de registro nulos inesperados.")
+                    }
+                }
+                is Resource.Error<AuthResponse> -> {
+                    _registerState.value = RegisterState.Error(result.message ?: "Erro desconhecido")
+                }
+                is Resource.Loading<AuthResponse> -> {
+                    // Já tratado acima
+                }
             }
         }
     }
-
-    // Remover createUserProfile, pois o perfil será criado no backend junto com o registro
-    // suspend fun createUserProfile(...) { ... }
-
-    fun resetState() {
-        _uiState.value = RegisterUiState.Initial
-    }
 }
 
-sealed class RegisterUiState {
-    object Initial : RegisterUiState()
-    object Loading : RegisterUiState()
-    object Success : RegisterUiState()
-    data class Error(val message: String) : RegisterUiState()
+sealed class RegisterState {
+    object Loading : RegisterState()
+    data class Success(val message: String) : RegisterState()
+    data class Error(val message: String) : RegisterState()
 }

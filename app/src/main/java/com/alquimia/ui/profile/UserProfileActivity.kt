@@ -5,7 +5,7 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.alquimia.data.remote.TokenManager
-import com.alquimia.databinding.ActivityUserProfileBinding // Você precisará criar este binding
+import com.alquimia.databinding.ActivityUserProfileBinding
 import com.alquimia.util.Resource
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -38,16 +38,20 @@ class UserProfileActivity : AppCompatActivity() {
                     binding.tvProfileInfo.text = "Carregando perfil..."
                 }
                 is Resource.Success -> {
-                    val user = resource.data
-                    binding.tvProfileInfo.text = """
-                        Nome: ${user.name}
-                        Email: ${user.email}
-                        Idade: ${user.age}
-                        Cidade: ${user.city}
-                        Gênero: ${user.gender}
-                        Interesses: ${user.interests?.joinToString(", ") ?: "Nenhum"}
-                        Foto: ${user.profilePicture ?: "N/A"}
-                    """.trimIndent()
+                    resource.data?.let { user -> // Usar ?.let para acessar 'user' de forma segura
+                        binding.tvProfileInfo.text = """
+                            Nome: ${user.name}
+                            Email: ${user.email}
+                            Idade: ${user.age}
+                            Cidade: ${user.city}
+                            Gênero: ${user.gender}
+                            Interesses: ${user.interests?.joinToString(", ") ?: "Nenhum"}
+                            Foto: ${user.profilePicture ?: "N/A"}
+                        """.trimIndent()
+                    } ?: run {
+                        binding.tvProfileInfo.text = "Erro: Dados do perfil nulos inesperados."
+                        Toast.makeText(this, "Erro: Dados do perfil nulos inesperados.", Toast.LENGTH_LONG).show()
+                    }
                 }
                 is Resource.Error -> {
                     binding.tvProfileInfo.text = "Erro ao carregar perfil: ${resource.message}"

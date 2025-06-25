@@ -1,51 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/profilesFragment">
+    app:startDestination="@id/loginFragment"> <!-- Ou sua tela inicial real -->
 
     <fragment
-        android:id="@+id/profilesFragment"
-        android:name="com.alquimia.ui.fragments.ProfilesFragment"
-        android:label="Descobrir" >
+        android:id="@+id/loginFragment"
+        android:name="com.alquimia.ui.login.LoginActivity"
+        android:label="Login"
+        tools:layout="@layout/activity_login">
         <action
-            android:id="@+id/action_profilesFragment_to_profileDetailFragment"
-            app:destination="@id/profileDetailFragment" />
+            android:id="@+id/action_loginFragment_to_mainActivity"
+            app:destination="@id/mainActivity"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true" />
+        <action
+            android:id="@+id/action_loginFragment_to_registerActivity"
+            app:destination="@id/registerActivity" />
     </fragment>
 
+    <activity
+        android:id="@+id/mainActivity"
+        android:name="com.alquimia.ui.main.MainActivity"
+        android:label="Main"
+        tools:layout="@layout/activity_main" />
+
+    <activity
+        android:id="@+id/registerActivity"
+        android:name="com.alquimia.ui.register.RegisterActivity"
+        android:label="Register"
+        tools:layout="@layout/activity_register" />
+
+    <!-- Exemplo de fragmento de mensagens com argumentos -->
     <fragment
         android:id="@+id/messagesFragment"
         android:name="com.alquimia.ui.fragments.MessagesFragment"
-        android:label="Mensagens" >
+        android:label="Messages"
+        tools:layout="@layout/fragment_messages">
+        <argument
+            android:name="conversationId"
+            app:argType="string" />
         <argument
             android:name="otherUserId"
             app:argType="string" />
     </fragment>
 
-    <fragment
-        android:id="@+id/settingsFragment"
-        android:name="com.alquimia.ui.fragments.SettingsFragment"
-        android:label="Perfil" >
-        <action
-            android:id="@+id/action_settingsFragment_to_editProfileFragment"
-            app:destination="@id/editProfileFragment" />
-    </fragment>
-
-    <fragment
-        android:id="@+id/editProfileFragment"
-        android:name="com.alquimia.ui.fragments.EditProfileFragment"
-        android:label="Editar Perfil" />
-
+    <!-- Exemplo de fragmento de detalhe de perfil com argumentos -->
     <fragment
         android:id="@+id/profileDetailFragment"
         android:name="com.alquimia.ui.fragments.ProfileDetailFragment"
-        android:label="Detalhes do Perfil" >
+        android:label="Profile Detail"
+        tools:layout="@layout/fragment_profile_detail">
         <argument
             android:name="userId"
             app:argType="string" />
-        <action
-            android:id="@+id/action_profileDetailFragment_to_messagesFragment"
-            app:destination="@id/messagesFragment" />
     </fragment>
+
+    <!-- Adicione outros destinos aqui -->
 
 </navigation>

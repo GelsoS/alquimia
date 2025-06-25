@@ -1,99 +1,103 @@
 package com.alquimia.ui.viewmodels
 
-import android.content.Context
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.alquimia.data.remote.models.LoginRequest
+import com.alquimia.data.remote.models.SocialLoginRequest
 import com.alquimia.data.repository.AuthRepository
-import com.alquimia.data.repository.UserRepository // Manter para futuras operações de perfil
+import com.alquimia.data.remote.TokenManager
+import com.alquimia.util.Resource
+import com.alquimia.data.remote.models.AuthResponse
+
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    private val authRepository: AuthRepository,
-    private val userRepository: UserRepository // Manter para futuras operações de perfil
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<LoginUiState>(LoginUiState.Initial)
-    val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
+    private val _loginState = MutableLiveData<LoginState>()
+    val loginState: LiveData<LoginState>
+        get() = _loginState
 
-    // Variáveis para armazenar dados de registro temporariamente
-    private var registeredName: String? = null
-    private var registeredAge: Int? = null
-    private var registeredCity: String? = null
-    private var registeredGender: String? = null
-
-    fun initRegistrationData(name: String?, age: Int?, city: String?, gender: String?) {
-        this.registeredName = name
-        this.registeredAge = age
-        this.registeredCity = city
-        this.registeredGender = gender
-    }
-
-    fun signIn(email: String, password: String) {
-        _uiState.value = LoginUiState.Loading
-
+    fun loginUser(request: LoginRequest) {
         viewModelScope.launch {
-            val signInResult = authRepository.signInWithEmail(email, password)
-
-            if (signInResult.isSuccess) {
-                // Se o login for bem-sucedido, o backend já deve ter lidado com o perfil
-                _uiState.value = LoginUiState.Success
-            } else {
-                _uiState.value = LoginUiState.Error(signInResult.exceptionOrNull()?.message ?: "Erro no login")
+            _loginState.value = LoginState.Loading
+            when (val result = authRepository.loginUser(request)) {
+                is Resource.Success<AuthResponse> -> {
+                    result.data?.let { authResponse ->
+                        TokenManager.authToken = authResponse.token
+                        TokenManager.currentUserId = authResponse.userId
+                        _loginState.value = LoginState.Success(authResponse.message)
+                    } ?: run {
+                        _loginState.value = LoginState.Error("Dados de login nulos inesperados.")
+                    }
+                }
+                is Resource.Error<AuthResponse> -> {
+                    _loginState.value = LoginState.Error(result.message ?: "Erro desconhecido")
+                }
+                is Resource.Loading<AuthResponse> -> {
+                    // Já tratado acima
+                }
             }
         }
     }
 
-    fun signInWithGoogle(context: Context) {
-        _uiState.value = LoginUiState.Loading
-
+    fun loginWithGoogle(googleToken: String) {
         viewModelScope.launch {
-            val signInResult = authRepository.signInWithGoogle(context)
-
-            if (signInResult.isSuccess) {
-                // Se o login com Google for bem-sucedido, o backend já deve ter lidado com o perfil
-                _uiState.value = LoginUiState.Success
-            } else {
-                _uiState.value = LoginUiState.Error(signInResult.exceptionOrNull()?.message ?: "Erro no login com Google")
+            _loginState.value = LoginState.Loading
+            val request = SocialLoginRequest(googleToken)
+            when (val result = authRepository.loginWithGoogle(request)) {
+                is Resource.Success<AuthResponse> -> {
+                    result.data?.let { authResponse ->
+                        TokenManager.authToken = authResponse.token
+                        TokenManager.currentUserId = authResponse.userId
+                        _loginState.value = LoginState.Success(authResponse.message)
+                    } ?: run {
+                        _loginState.value = LoginState.Error("Dados de login Google nulos inesperados.")
+                    }
+                }
+                is Resource.Error<AuthResponse> -> {
+                    _loginState.value = LoginState.Error(result.message ?: "Erro desconhecido")
+                }
+                is Resource.Loading<AuthResponse> -> {
+                    // Já tratado acima
+                }
             }
         }
     }
 
-    fun signInWithFacebook(accessToken: String) { // Mudado de redirectUrl para accessToken
-        _uiState.value = LoginUiState.Loading
-
+    fun loginWithFacebook(facebookToken: String) {
         viewModelScope.launch {
-            val signInResult = authRepository.signInWithFacebook(accessToken) // Passar accessToken
-
-            if (signInResult.isSuccess) {
-                // Se o login com Facebook for bem-sucedido, o backend já deve ter lidado com o perfil
-                _uiState.value = LoginUiState.Success
-            } else {
-                _uiState.value = LoginUiState.Error(signInResult.exceptionOrNull()?.message ?: "Erro no login com Facebook")
+            _loginState.value = LoginState.Loading
+            val request = SocialLoginRequest(facebookToken)
+            when (val result = authRepository.loginWithFacebook(request)) {
+                is Resource.Success<AuthResponse> -> {
+                    result.data?.let { authResponse ->
+                        TokenManager.authToken = authResponse.token
+                        TokenManager.currentUserId = authResponse.userId
+                        _loginState.value = LoginState.Success(authResponse.message)
+                    } ?: run {
+                        _loginState.value = LoginState.Error("Dados de login Facebook nulos inesperados.")
+                    }
+                }
+                is Resource.Error<AuthResponse> -> {
+                    _loginState.value = LoginState.Error(result.message ?: "Erro desconhecido")
+                }
+                is Resource.Loading<AuthResponse> -> {
+                    // Já tratado acima
+                }
             }
         }
-    }
-
-    // Remover checkAndCreateUserProfile, pois o backend será responsável por isso
-    // private suspend fun checkAndCreateUserProfile(email: String) { ... }
-
-    fun resetState() {
-        _uiState.value = LoginUiState.Initial
-        registeredName = null
-        registeredAge = null
-        registeredCity = null
-        registeredGender = null
     }
 }
 
-sealed class LoginUiState {
-    object Initial : LoginUiState()
-    object Loading : LoginUiState()
-    object Success : LoginUiState()
-    data class Error(val message: String) : LoginUiState()
+sealed class LoginState {
+    object Loading : LoginState()
+    data class Success(val message: String) : LoginState()
+    data class Error(val message: String) : LoginState()
 }

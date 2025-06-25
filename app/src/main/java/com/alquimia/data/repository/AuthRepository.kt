@@ -1,28 +1,31 @@
 package com.alquimia.data.repository
 
-import com.alquimia.data.model.AuthResponse
-import com.alquimia.data.model.LoginRequest
-import com.alquimia.data.model.RegisterRequest
-import com.alquimia.data.network.ApiService
-import com.alquimia.utils.Resource
+import com.alquimia.data.remote.ApiService
+import com.alquimia.data.remote.models.AuthResponse
+import com.alquimia.data.remote.models.ForgotPasswordRequest
+import com.alquimia.data.remote.models.LoginRequest
+import com.alquimia.data.remote.models.RegisterRequest
+import com.alquimia.data.remote.models.SocialLoginRequest
+import com.alquimia.util.Resource
 import com.google.gson.Gson
 import javax.inject.Inject
 
 interface AuthRepository {
-    suspend fun loginUser(request: LoginRequest, token: String): Resource<AuthResponse>
-    suspend fun registerUser(request: RegisterRequest, token: String): Resource<AuthResponse>
-    suspend fun loginWithGoogle(googleToken: String, token: String): Resource<AuthResponse>
-    suspend fun loginWithFacebook(facebookToken: String, token: String): Resource<AuthResponse>
-    suspend fun forgotPassword(email: String, token: String): Resource<AuthResponse>
+    // Removido o parâmetro 'token'
+    suspend fun loginUser(request: LoginRequest): Resource<AuthResponse>
+    suspend fun registerUser(request: RegisterRequest): Resource<AuthResponse>
+    suspend fun loginWithGoogle(request: SocialLoginRequest): Resource<AuthResponse>
+    suspend fun loginWithFacebook(request: SocialLoginRequest): Resource<AuthResponse>
+    suspend fun forgotPassword(request: ForgotPasswordRequest): Resource<AuthResponse>
 }
 
 class AuthRepositoryImpl @Inject constructor(
     private val apiService: ApiService
 ) : AuthRepository {
 
-    override suspend fun loginUser(request: LoginRequest, token: String): Resource<AuthResponse> {
+    override suspend fun loginUser(request: LoginRequest): Resource<AuthResponse> {
         return try {
-            val response = apiService.loginUser(request, token)
+            val response = apiService.loginUser(request) // Removido o argumento 'token'
             if (response.isSuccessful) {
                 Resource.Success(response.body()!!)
             } else {
@@ -39,9 +42,9 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun registerUser(request: RegisterRequest, token: String): Resource<AuthResponse> {
+    override suspend fun registerUser(request: RegisterRequest): Resource<AuthResponse> {
         return try {
-            val response = apiService.registerUser(request, token)
+            val response = apiService.registerUser(request) // Removido o argumento 'token'
             if (response.isSuccessful) {
                 Resource.Success(response.body()!!)
             } else {
@@ -58,9 +61,9 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun loginWithGoogle(googleToken: String, token: String): Resource<AuthResponse> {
+    override suspend fun loginWithGoogle(request: SocialLoginRequest): Resource<AuthResponse> {
         return try {
-            val response = apiService.loginWithGoogle(googleToken, token)
+            val response = apiService.loginWithGoogle(request) // Removido o argumento 'token'
             if (response.isSuccessful) {
                 Resource.Success(response.body()!!)
             } else {
@@ -77,9 +80,9 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun loginWithFacebook(facebookToken: String, token: String): Resource<AuthResponse> {
+    override suspend fun loginWithFacebook(request: SocialLoginRequest): Resource<AuthResponse> {
         return try {
-            val response = apiService.loginWithFacebook(facebookToken, token)
+            val response = apiService.loginWithFacebook(request) // Removido o argumento 'token'
             if (response.isSuccessful) {
                 Resource.Success(response.body()!!)
             } else {
@@ -96,9 +99,9 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun forgotPassword(email: String, token: String): Resource<AuthResponse> {
+    override suspend fun forgotPassword(request: ForgotPasswordRequest): Resource<AuthResponse> {
         return try {
-            val response = apiService.forgotPassword(email, token)
+            val response = apiService.forgotPassword(request) // Removido o argumento 'token'
             if (response.isSuccessful) {
                 Resource.Success(response.body()!!)
             } else {
