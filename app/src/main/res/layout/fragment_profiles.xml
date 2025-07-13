@@ -15,23 +15,15 @@
         android:textStyle="bold"
         android:layout_marginBottom="16dp"/>
 
-    <TextView
-        android:id="@+id/tv_profiles_status"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_profiles"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:text="Carregando perfis..."
-        android:background="@android:color/darker_gray"
-        android:textColor="@android:color/white"
         android:padding="8dp"
-        android:scrollbars="vertical"
+        android:clipToPadding="false"
+        tools:listitem="@layout/item_profile"
         android:layout_marginBottom="16dp"/>
-
-    <Button
-        android:id="@+id/btn_view_profile_detail"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Ver Detalhes do Perfil (Exemplo)"/>
 
     <!-- TODO: Adicionar RecyclerView para listar perfis -->
 

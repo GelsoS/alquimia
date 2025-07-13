@@ -30,10 +30,10 @@ class UserProfileViewModel @Inject constructor(
 
     fun fetchUserProfile(userId: String) {
         viewModelScope.launch {
-            _userProfile.value = Resource.Loading() // Removido o tipo explícito, inferido
+            _userProfile.value = Resource.Loading()
             val token = TokenManager.authToken
             if (token == null) {
-                _userProfile.value = Resource.Error("Token de autenticação não encontrado.") // Removido o tipo explícito
+                _userProfile.value = Resource.Error("Token de autenticação não encontrado.")
                 return@launch
             }
             _userProfile.value = userRepository.getUserProfile(userId, token)
@@ -42,10 +42,10 @@ class UserProfileViewModel @Inject constructor(
 
     fun updateProfile(userId: String, request: UpdateUserRequest) {
         viewModelScope.launch {
-            _updateProfileState.value = Resource.Loading() // Removido o tipo explícito
+            _updateProfileState.value = Resource.Loading()
             val token = TokenManager.authToken
             if (token == null) {
-                _updateProfileState.value = Resource.Error("Token de autenticação não encontrado.") // Removido o tipo explícito
+                _updateProfileState.value = Resource.Error("Token de autenticação não encontrado.")
                 return@launch
             }
             _updateProfileState.value = userRepository.updateUserProfile(userId, request, token)
@@ -54,10 +54,10 @@ class UserProfileViewModel @Inject constructor(
 
     fun uploadProfilePicture(userId: String, imageFile: File) {
         viewModelScope.launch {
-            _uploadPictureState.value = Resource.Loading() // Removido o tipo explícito
+            _uploadPictureState.value = Resource.Loading()
             val token = TokenManager.authToken
             if (token == null) {
-                _uploadPictureState.value = Resource.Error("Token de autenticação não encontrado.") // Removido o tipo explícito
+                _uploadPictureState.value = Resource.Error("Token de autenticação não encontrado.")
                 return@launch
             }
             _uploadPictureState.value = userRepository.uploadProfilePicture(userId, imageFile, token)

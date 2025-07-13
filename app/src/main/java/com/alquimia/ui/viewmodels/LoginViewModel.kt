@@ -1,4 +1,4 @@
-package com.alquimia.ui.viewmodels
+package com.alquimia.ui.login
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -29,11 +29,13 @@ class LoginViewModel @Inject constructor(
             _loginState.value = LoginState.Loading
             when (val result = authRepository.loginUser(request)) {
                 is Resource.Success<AuthResponse> -> {
+                    // Usar 'let' para garantir que 'authResponse' não é nulo dentro do bloco
                     result.data?.let { authResponse ->
                         TokenManager.authToken = authResponse.token
                         TokenManager.currentUserId = authResponse.userId
                         _loginState.value = LoginState.Success(authResponse.message)
                     } ?: run {
+                        // Caso inesperado: Resource.Success mas data é nulo
                         _loginState.value = LoginState.Error("Dados de login nulos inesperados.")
                     }
                 }

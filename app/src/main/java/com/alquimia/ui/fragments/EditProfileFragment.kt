@@ -4,14 +4,16 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import com.alquimia.databinding.FragmentEditProfileBinding // Crie este binding
+import com.alquimia.R // Importar R para acessar recursos
+import com.alquimia.databinding.FragmentEditProfileBinding
 import com.alquimia.ui.viewmodels.EditProfileViewModel
 import com.alquimia.util.Resource
 import dagger.hilt.android.AndroidEntryPoint
-import java.io.File // Importar File
+import java.io.File
 
 @AndroidEntryPoint
 class EditProfileFragment : Fragment() {
@@ -31,10 +33,18 @@ class EditProfileFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        setupGenderSpinner()
         editProfileViewModel.fetchUserProfile()
 
         setupObservers()
         setupListeners()
+    }
+
+    private fun setupGenderSpinner() {
+        val genderOptions = resources.getStringArray(R.array.gender_options)
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, genderOptions)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spinnerGender.adapter = adapter
     }
 
     private fun setupListeners() {
@@ -42,9 +52,9 @@ class EditProfileFragment : Fragment() {
             val name = binding.etName.text.toString()
             val age = binding.etAge.text.toString().toIntOrNull()
             val city = binding.etCity.text.toString()
-            val gender = binding.spinnerGender.selectedItem?.toString() // Assumindo um Spinner
+            val gender = binding.spinnerGender.selectedItem?.toString()
 
-            editProfileViewModel.updateProfile(name, age, city, gender, null) // Interesses nulos por enquanto
+            editProfileViewModel.updateProfile(name, age, city, gender, null)
         }
 
         binding.btnUploadPicture.setOnClickListener {
@@ -77,7 +87,12 @@ class EditProfileFragment : Fragment() {
                         binding.etName.setText(user.name)
                         binding.etAge.setText(user.age.toString())
                         binding.etCity.setText(user.city)
-                        // TODO: Selecionar gênero no spinner
+                        // Selecionar gênero no spinner
+                        val genderOptions = resources.getStringArray(R.array.gender_options)
+                        val genderIndex = genderOptions.indexOf(user.gender)
+                        if (genderIndex != -1) {
+                            binding.spinnerGender.setSelection(genderIndex)
+                        }
                     } ?: run {
                         binding.tvProfileStatus.text = "Erro: Dados do perfil nulos inesperados."
                         Toast.makeText(requireContext(), "Erro: Dados do perfil nulos inesperados.", Toast.LENGTH_LONG).show()
@@ -97,7 +112,6 @@ class EditProfileFragment : Fragment() {
                 }
                 is Resource.Success -> {
                     Toast.makeText(requireContext(), resource.message ?: "Perfil atualizado com sucesso!", Toast.LENGTH_SHORT).show()
-                    // Opcional: Recarregar perfil para garantir consistência
                     editProfileViewModel.fetchUserProfile()
                 }
                 is Resource.Error -> {
@@ -113,7 +127,7 @@ class EditProfileFragment : Fragment() {
                 }
                 is Resource.Success -> {
                     Toast.makeText(requireContext(), "Upload de imagem concluído: ${resource.data}", Toast.LENGTH_SHORT).show()
-                    editProfileViewModel.fetchUserProfile() // Recarregar perfil para mostrar nova imagem
+                    editProfileViewModel.fetchUserProfile()
                 }
                 is Resource.Error -> {
                     Toast.makeText(requireContext(), "Erro no upload da imagem: ${resource.message}", Toast.LENGTH_LONG).show()

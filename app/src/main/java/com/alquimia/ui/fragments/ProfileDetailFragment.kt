@@ -13,6 +13,7 @@ import com.alquimia.databinding.FragmentProfileDetailBinding
 import com.alquimia.ui.viewmodels.ProfileDetailViewModel
 import com.alquimia.util.Resource
 import dagger.hilt.android.AndroidEntryPoint
+import com.bumptech.glide.Glide
 
 @AndroidEntryPoint
 class ProfileDetailFragment : Fragment() {
@@ -55,8 +56,18 @@ class ProfileDetailFragment : Fragment() {
                             Cidade: ${user.city}
                             Gênero: ${user.gender}
                             Interesses: ${user.interests?.joinToString(", ") ?: "Nenhum"}
-                            Foto: ${user.profilePicture ?: "N/A"}
-                        """.trimIndent()
+                        """.trimIndent() // Removido a linha da foto daqui
+
+                        // Carregar imagem de perfil com Glide
+                        user.profilePicture?.let { imageUrl ->
+                            Glide.with(binding.ivProfileDetailPicture.context)
+                                .load(imageUrl)
+                                .placeholder(android.R.drawable.sym_def_app_icon)
+                                .error(android.R.drawable.ic_menu_gallery)
+                                .into(binding.ivProfileDetailPicture)
+                        } ?: run {
+                            binding.ivProfileDetailPicture.setImageResource(android.R.drawable.sym_def_app_icon)
+                        }
                     } ?: run {
                         binding.tvProfileDetailInfo.text = "Erro: Dados do perfil nulos inesperados."
                         Toast.makeText(requireContext(), "Erro: Dados do perfil nulos inesperados.", Toast.LENGTH_LONG).show()

@@ -18,6 +18,7 @@
         android:textStyle="bold"
         android:layout_marginBottom="32dp" />
 
+    <!-- Estes botões serão ocultados via código Kotlin na MainActivity -->
     <Button
         android:id="@+id/btn_profile"
         android:layout_width="wrap_content"
@@ -31,8 +32,7 @@
         android:layout_height="wrap_content"
         android:text="Sair" />
 
-    <!-- Se você estiver usando Navigation Components com Fragments, adicione isso: -->
-    <!--
+    <!-- Adicione este NavHostFragment para navegação entre Fragments -->
     <fragment
         android:id="@+id/nav_host_fragment"
         android:name="androidx.navigation.fragment.NavHostFragment"
@@ -42,11 +42,11 @@
         app:defaultNavHost="true"
         app:navGraph="@navigation/nav_graph" />
 
+    <!-- Adicione esta BottomNavigationView para navegação inferior -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:menu="@menu/bottom_nav_menu" />
-    -->
 
 </LinearLayout>

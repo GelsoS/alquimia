@@ -8,18 +8,19 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.navArgs
-import com.alquimia.databinding.FragmentMessagesBinding // Crie este binding
-import com.alquimia.ui.chat.MessageViewModel // Use o MessageViewModel
+import com.alquimia.databinding.FragmentMessagesBinding
+import com.alquimia.ui.chat.MessageViewModel
 import com.alquimia.util.Resource
 import dagger.hilt.android.AndroidEntryPoint
+import android.util.Log // Adicione esta importação no topo do arquivo
 
 @AndroidEntryPoint
 class MessagesFragment : Fragment() {
 
     private var _binding: FragmentMessagesBinding? = null
     private val binding get() = _binding!!
-    private val messageViewModel: MessageViewModel by viewModels() // Use MessageViewModel
-    private val args: MessagesFragmentArgs by navArgs() // Usar navArgs
+    private val messageViewModel: MessageViewModel by viewModels()
+    private val args: MessagesFragmentArgs by navArgs()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -33,13 +34,15 @@ class MessagesFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val conversationId = args.conversationId
-        val otherUserId = args.otherUserId // Se você passar o otherUserId também
+        val otherUserId = args.otherUserId
 
-        // Exemplo de como usar os dados
+        Log.d("MessagesFragment", "MessagesFragment recebido:")
+        Log.d("MessagesFragment", "  Conversation ID: $conversationId")
+        Log.d("MessagesFragment", "  Other User ID: $otherUserId")
+
         binding.tvConversationId.text = "Conversa ID: $conversationId"
         binding.tvOtherUserId.text = "Outro Usuário ID: $otherUserId"
 
-        // Carregar mensagens
         messageViewModel.fetchMessages(conversationId)
 
         setupObservers()
@@ -75,7 +78,6 @@ class MessagesFragment : Fragment() {
                 is Resource.Success -> {
                     Toast.makeText(requireContext(), "Mensagem enviada!", Toast.LENGTH_SHORT).show()
                     binding.etMessageInput.text?.clear()
-                    // Recarregar mensagens ou adicionar a nova mensagem à lista
                     messageViewModel.fetchMessages(args.conversationId)
                 }
                 is Resource.Error -> {

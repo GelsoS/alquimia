@@ -17,7 +17,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLoginBinding
-    private val loginViewModel: LoginViewModel by viewModels()
+    private val viewModel: LoginViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,22 +30,21 @@ class LoginActivity : AppCompatActivity() {
 
     private fun setupListeners() {
         binding.btnLogin.setOnClickListener {
-            val email = binding.etEmail.text.toString()
-            val password = binding.etPassword.text.toString()
+            val email = binding.etEmail.text.toString().trim()
+            val password = binding.etPassword.text.toString().trim()
+
             if (email.isNotEmpty() && password.isNotEmpty()) {
-                loginViewModel.loginUser(LoginRequest(email, password))
+                viewModel.loginUser(LoginRequest(email, password))
             } else {
                 Toast.makeText(this, "Preencha todos os campos", Toast.LENGTH_SHORT).show()
             }
         }
 
         binding.btnGoogle.setOnClickListener {
-            // TODO: Implementar login com Google
             Toast.makeText(this, "Login com Google não implementado ainda", Toast.LENGTH_SHORT).show()
         }
 
         binding.btnFacebook.setOnClickListener {
-            // TODO: Implementar login com Facebook
             Toast.makeText(this, "Login com Facebook não implementado ainda", Toast.LENGTH_SHORT).show()
         }
 
@@ -60,25 +59,18 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun setupObservers() {
-        loginViewModel.loginState.observe(this) { state ->
+        viewModel.loginState.observe(this) { state ->
             when (state) {
-                LoginState.Loading -> {
+                is LoginState.Loading -> {
                     binding.progressBar.visibility = View.VISIBLE
-                    binding.btnLogin.isEnabled = false
-                    binding.btnGoogle.isEnabled = false
-                    binding.btnFacebook.isEnabled = false
-                    binding.tvForgotPassword.isEnabled = false
-                    binding.tvRegister.isEnabled = false
+                    setButtonsEnabled(false)
                     binding.cardError.visibility = View.GONE
                 }
                 is LoginState.Success -> {
                     binding.progressBar.visibility = View.GONE
-                    binding.btnLogin.isEnabled = true
-                    binding.btnGoogle.isEnabled = true
-                    binding.btnFacebook.isEnabled = true
-                    binding.tvForgotPassword.isEnabled = true
-                    binding.tvRegister.isEnabled = true
+                    setButtonsEnabled(true)
                     Toast.makeText(this, state.message, Toast.LENGTH_SHORT).show()
+
                     val intent = Intent(this, MainActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                     startActivity(intent)
@@ -86,16 +78,28 @@ class LoginActivity : AppCompatActivity() {
                 }
                 is LoginState.Error -> {
                     binding.progressBar.visibility = View.GONE
-                    binding.btnLogin.isEnabled = true
-                    binding.btnGoogle.isEnabled = true
-                    binding.btnFacebook.isEnabled = true
-                    binding.tvForgotPassword.isEnabled = true
-                    binding.tvRegister.isEnabled = true
+                    setButtonsEnabled(true)
                     binding.tvError.text = state.message
                     binding.cardError.visibility = View.VISIBLE
                     Toast.makeText(this, state.message, Toast.LENGTH_LONG).show()
                 }
+                else -> {
+                    // Este caso não deveria ser alcançado com os estados atuais de LoginState,
+                    // mas é adicionado para satisfazer o compilador.
+                    // Você pode logar um erro ou lançar uma exceção aqui se quiser.
+                    Toast.makeText(this, "Estado de login desconhecido: $state", Toast.LENGTH_LONG).show()
+                    binding.progressBar.visibility = View.GONE
+                    setButtonsEnabled(true)
+                }
             }
         }
+    }
+
+    private fun setButtonsEnabled(enabled: Boolean) {
+        binding.btnLogin.isEnabled = enabled
+        binding.btnGoogle.isEnabled = enabled
+        binding.btnFacebook.isEnabled = enabled
+        binding.tvForgotPassword.isEnabled = enabled
+        binding.tvRegister.isEnabled = enabled
     }
 }

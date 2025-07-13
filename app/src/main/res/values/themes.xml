@@ -31,18 +31,6 @@
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <!-- Optional: For light status bar icons -->
         <item name="android:windowLightStatusBar">true</item>
-
-        <!-- Define o tema a ser usado após a splash screen (Android 12+) -->
-        <item name="postSplashScreenTheme">@style/Theme.Alquimia</item>
     </style>
 
-    <!-- Novo tema para a tela de abertura (splash screen) -->
-    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
-        <!-- Define o drawable que será exibido como plano de fundo da splash screen -->
-        <item name="windowSplashScreenBackground">@color/primary</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/splash</item>
-        <item name="windowSplashScreenAnimationDuration">1000</item>
-        <!-- Define o tema a ser usado após a splash screen -->
-        <item name="postSplashScreenTheme">@style/Theme.Alquimia</item>
-    </style>
 </resources>

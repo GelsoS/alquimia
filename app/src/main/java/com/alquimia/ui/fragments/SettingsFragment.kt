@@ -13,6 +13,8 @@ import com.alquimia.ui.login.LoginActivity
 import com.alquimia.ui.viewmodels.SettingsViewModel
 import com.alquimia.util.Resource
 import dagger.hilt.android.AndroidEntryPoint
+import com.bumptech.glide.Glide
+import androidx.navigation.fragment.findNavController
 
 @AndroidEntryPoint
 class SettingsFragment : Fragment() {
@@ -52,7 +54,18 @@ class SettingsFragment : Fragment() {
                             Idade: ${user.age}
                             Cidade: ${user.city}
                             Gênero: ${user.gender}
-                        """.trimIndent()
+                        """.trimIndent() // Removido a linha da foto daqui
+
+                        // Carregar imagem de perfil com Glide
+                        user.profilePicture?.let { imageUrl ->
+                            Glide.with(binding.ivSettingsProfilePicture.context)
+                                .load(imageUrl)
+                                .placeholder(android.R.drawable.sym_def_app_icon)
+                                .error(android.R.drawable.ic_menu_gallery)
+                                .into(binding.ivSettingsProfilePicture)
+                        } ?: run {
+                            binding.ivSettingsProfilePicture.setImageResource(android.R.drawable.sym_def_app_icon)
+                        }
                     } ?: run {
                         binding.tvProfileInfo.text = "Erro: Dados do perfil nulos inesperados."
                         Toast.makeText(requireContext(), "Erro: Dados do perfil nulos inesperados.", Toast.LENGTH_LONG).show()
@@ -73,6 +86,10 @@ class SettingsFragment : Fragment() {
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             startActivity(intent)
             requireActivity().finish()
+        }
+
+        binding.btnEditProfile.setOnClickListener {
+            findNavController().navigate(SettingsFragmentDirections.actionSettingsFragmentToEditProfileFragment())
         }
     }
 

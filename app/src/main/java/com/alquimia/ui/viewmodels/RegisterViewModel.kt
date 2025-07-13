@@ -1,4 +1,4 @@
-package com.alquimia.ui.viewmodels
+package com.alquimia.ui.register
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData

@@ -1,5 +1,6 @@
 package com.alquimia.ui.chat
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -45,6 +46,12 @@ class MessageViewModel @Inject constructor(
         viewModelScope.launch {
             _messages.value = Resource.Loading<List<MessageData>>()
             val token = TokenManager.authToken
+            val currentUserId = TokenManager.currentUserId // Obtenha o ID do usuário logado
+            Log.d("MessageViewModel", "fetchMessages chamado:")
+            Log.d("MessageViewModel", "  Conversation ID: $conversationId")
+            Log.d("MessageViewModel", "  Current User ID (TokenManager): $currentUserId")
+            Log.d("MessageViewModel", "  Token presente: ${token != null}")
+
             if (token == null) {
                 _messages.value = Resource.Error<List<MessageData>>("Token de autenticação não encontrado.")
                 return@launch

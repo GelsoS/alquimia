@@ -35,6 +35,6 @@ class SettingsViewModel @Inject constructor(
 
     fun logout() {
         TokenManager.clearSession()
-        _userProfile.value = Resource.Success(null) // Indica que o usuário está deslogado
+        _userProfile.value = Resource.Success(null) // Agora Resource.Success aceita nulo
     }
 }
