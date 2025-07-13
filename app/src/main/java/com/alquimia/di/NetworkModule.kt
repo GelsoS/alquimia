@@ -27,6 +27,9 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
+    // Adicione esta constante no topo do objeto NetworkModule
+    const val BASE_URL = "http://192.168.3.19:3000/" // Mantenha a URL do seu backend
+
     @Provides
     @Singleton
     fun provideHttpLoggingInterceptor(): HttpLoggingInterceptor {
@@ -71,7 +74,8 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("http://192.168.3.19:3000/")
+            // Altere a linha do provideRetrofit para usar a constante
+            .baseUrl(BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

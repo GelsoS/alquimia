@@ -18,12 +18,12 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_profiles"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
         android:layout_weight="1"
-        android:padding="8dp"
         android:clipToPadding="false"
-        tools:listitem="@layout/item_profile"
-        android:layout_marginBottom="16dp"/>
+        android:padding="8dp"
+        tools:listitem="@layout/item_profile" />
 
     <!-- TODO: Adicionar RecyclerView para listar perfis -->
 

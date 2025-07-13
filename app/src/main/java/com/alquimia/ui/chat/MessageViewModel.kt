@@ -82,7 +82,17 @@ class MessageViewModel @Inject constructor(
                 _sendMessageState.value = Resource.Error<MessageData>("Token de autenticação não encontrado.")
                 return@launch
             }
-            _sendMessageState.value = chatRepository.sendMessage(conversationId, content, token)
+            when (val result = chatRepository.sendMessage(conversationId, content, token)) {
+                is Resource.Success -> {
+                    _sendMessageState.value = Resource.Success(result.data!!) // Apenas sinaliza sucesso
+                }
+                is Resource.Error -> {
+                    _sendMessageState.value = Resource.Error(result.message ?: "Erro ao enviar mensagem")
+                }
+                is Resource.Loading -> {
+                    // Já tratado acima
+                }
+            }
         }
     }
 }
