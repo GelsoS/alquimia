@@ -1,33 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp"
     tools:context=".ui.fragments.MessagesFragment">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Chat de Mensagens"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="16dp"/>
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar_messages"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        app:titleTextColor="@android:color/white"
+        app:navigationIcon="@drawable/ic_arrow_back" /> <!-- Certifique-se de criar este drawable -->
 
-    <TextView
-        android:id="@+id/tv_conversation_id"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="ID da Conversa: "
-        android:layout_marginBottom="8dp"/>
-
-    <TextView
-        android:id="@+id/tv_other_user_id"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Outro Usuário ID: "
-        android:layout_marginBottom="16dp"/>
+    <!-- Removidos os TextViews de ID da Conversa e Outro Usuário ID para simplificar o layout do chat -->
+    <!-- Eles podem ser exibidos no título da Toolbar ou em outro lugar se necessário -->
 
     <!-- RecyclerView para exibir as mensagens -->
     <androidx.recyclerview.widget.RecyclerView
@@ -35,15 +24,19 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_marginBottom="16dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
         android:scrollbars="vertical"
-        tools:listitem="@layout/item_message_sent" /> <!-- Exemplo de item de layout -->
+        tools:listitem="@layout/item_message_sent" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:gravity="center_vertical"
+        android:padding="16dp">
 
         <EditText
             android:id="@+id/et_message_input"

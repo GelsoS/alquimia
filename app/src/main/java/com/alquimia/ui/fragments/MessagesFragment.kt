@@ -8,21 +8,19 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.navArgs
-import androidx.recyclerview.widget.LinearLayoutManager
 import com.alquimia.databinding.FragmentMessagesBinding
 import com.alquimia.ui.chat.MessageViewModel
 import com.alquimia.util.Resource
 import dagger.hilt.android.AndroidEntryPoint
 import android.util.Log
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.alquimia.data.remote.TokenManager // Importar TokenManager
+import com.alquimia.ui.chat.MessageAdapter // Importar MessageAdapter
 import io.socket.client.IO
 import io.socket.client.Socket
-import io.socket.emitter.Emitter
-import com.alquimia.ui.chat.MessageAdapter
-import com.alquimia.data.remote.TokenManager // Importe TokenManager
-import com.alquimia.data.remote.models.MessageData // Importe MessageData
-import com.google.gson.Gson // Para parsear JSON de mensagens do Socket.IO
-import com.alquimia.di.NetworkModule // Para obter a BASE_URL
+import com.google.gson.Gson // Para parsear mensagens do Socket.IO
+import com.alquimia.data.remote.models.MessageData // Para o modelo de dados da mensagem
 
 @AndroidEntryPoint
 class MessagesFragment : Fragment() {
@@ -32,9 +30,9 @@ class MessagesFragment : Fragment() {
     private val messageViewModel: MessageViewModel by viewModels()
     private val args: MessagesFragmentArgs by navArgs()
 
-    private lateinit var socket: Socket
     private lateinit var messageAdapter: MessageAdapter
-    private var currentUserId: String? = null
+    private lateinit var socket: Socket
+    private val gson = Gson() // Instância de Gson para desserialização
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -47,37 +45,48 @@ class MessagesFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        currentUserId = TokenManager.currentUserId // Obtenha o ID do usuário logado
-        if (currentUserId == null) {
-            Toast.makeText(requireContext(), "Erro: ID do usuário não encontrado.", Toast.LENGTH_LONG).show()
-             findNavController().popBackStack() // Voltar se não houver ID de usuário
-            return
-        }
-
         val conversationId = args.conversationId
         val otherUserId = args.otherUserId
+        val otherUserName = args.otherUserName // Agora o argumento existe
+        val currentUserId = TokenManager.currentUserId // Obter o ID do usuário logado
 
         Log.d("MessagesFragment", "MessagesFragment recebido:")
         Log.d("MessagesFragment", "  Conversation ID: $conversationId")
         Log.d("MessagesFragment", "  Other User ID: $otherUserId")
+        Log.d("MessagesFragment", "  Other User Name: $otherUserName")
         Log.d("MessagesFragment", "  Current User ID: $currentUserId")
 
-        binding.tvConversationId.text = "Conversa ID: $conversationId"
-        binding.tvOtherUserId.text = "Outro Usuário ID: $otherUserId"
+        // Configurar Toolbar
+        binding.toolbarMessages.title = otherUserName
+        binding.toolbarMessages.setNavigationOnClickListener {
+            findNavController().navigateUp() // Volta para a tela anterior
+        }
 
-        setupRecyclerView()
-        setupSocketIo(conversationId)
-        messageViewModel.fetchMessages(conversationId) // Carrega mensagens iniciais
+        // Remover os TextViews de ID da Conversa e Outro Usuário ID, pois não estão mais no layout
+        // binding.tvConversationId.text = "Conversa ID: $conversationId"
+        // binding.tvOtherUserId.text = "Outro Usuário ID: $otherUserId"
+
+        // Verificar se o currentUserId é nulo antes de passar para o adapter
+        if (currentUserId == null) {
+            Toast.makeText(requireContext(), "Erro: ID do usuário logado não encontrado.", Toast.LENGTH_LONG).show()
+            findNavController().navigateUp() // Voltar se não houver usuário logado
+            return
+        }
+
+        setupRecyclerView(currentUserId) // Passar currentUserId para o adapter
+        messageViewModel.fetchMessages(conversationId)
+
+        setupSocketIo(conversationId) // Configurar Socket.IO
 
         setupObservers()
         setupListeners()
     }
 
-    private fun setupRecyclerView() {
-        messageAdapter = MessageAdapter(currentUserId!!) // currentUserId não será nulo aqui
+    private fun setupRecyclerView(currentUserId: String?) {
+        messageAdapter = MessageAdapter(currentUserId) // Passar o ID do usuário atual (agora pode ser nulo)
         binding.rvMessages.apply {
             layoutManager = LinearLayoutManager(context).apply {
-                stackFromEnd = true // Para que as novas mensagens apareçam na parte inferior
+                stackFromEnd = true // Mensagens mais recentes na parte inferior
             }
             adapter = messageAdapter
         }
@@ -85,71 +94,43 @@ class MessagesFragment : Fragment() {
 
     private fun setupSocketIo(conversationId: String) {
         try {
-            val options = IO.Options()
-            options.forceNew = true // Garante uma nova conexão
-            options.reconnection = true
-            options.reconnectionAttempts = 5
-            options.reconnectionDelay = 1000
-            options.timeout = 10000
-            options.transports = arrayOf("websocket") // Prioriza WebSockets
+            val opts = IO.Options()
+            opts.forceNew = true
+            opts.reconnection = true
+            opts.query = "token=${TokenManager.authToken}" // Enviar token JWT se necessário para autenticação no Socket.IO
 
             // Use a mesma BASE_URL do NetworkModule
-            val baseUrl = NetworkModule.provideRetrofit(NetworkModule.provideOkHttpClient(
-                NetworkModule.provideHttpLoggingInterceptor(),
-                NetworkModule.provideAuthInterceptor(NetworkModule.provideSharedPreferencesManager(requireContext()))
-            )).baseUrl().toString()
+            val baseUrl = "http://192.168.3.19:3000/" // Certifique-se de que esta URL corresponde à do NetworkModule
+            socket = IO.socket(baseUrl, opts)
 
-            socket = IO.socket(baseUrl, options)
-
-            socket.on(Socket.EVENT_CONNECT, Emitter.Listener {
+            socket.on(Socket.EVENT_CONNECT) {
                 Log.d("Socket.IO", "Conectado ao Socket.IO!")
-                socket.emit("joinConversation", conversationId) // Entra na sala da conversa
-            })
-                .on("newMessage", Emitter.Listener { args ->
-                    val data = args[0]
-                    Log.d("Socket.IO", "Nova mensagem recebida: $data")
-                    if (data is String) {
-                        try {
-                            val message = Gson().fromJson(data, MessageData::class.java)
-                            activity?.runOnUiThread {
-                                val currentList = messageAdapter.currentList.toMutableList()
-                                currentList.add(message)
-                                messageAdapter.submitList(currentList) {
-                                    binding.rvMessages.scrollToPosition(currentList.size - 1) // Rola para a última mensagem
-                                }
-                            }
-                        } catch (e: Exception) {
-                            Log.e("Socket.IO", "Erro ao parsear mensagem JSON: ${e.message}")
+                socket.emit("joinConversation", conversationId)
+            }.on("newMessage") { args ->
+                args.firstOrNull()?.let { data ->
+                    try {
+                        val message = gson.fromJson(data.toString(), MessageData::class.java)
+                        Log.d("Socket.IO", "Nova mensagem recebida: ${message.content}")
+                        // Adicionar a nova mensagem à lista e rolar para o final
+                        val currentList = messageAdapter.currentList.toMutableList()
+                        currentList.add(message)
+                        messageAdapter.submitList(currentList) {
+                            binding.rvMessages.scrollToPosition(messageAdapter.itemCount - 1)
                         }
-                    } else if (data is Map<*, *>) { // Se for um objeto JSON diretamente
-                        try {
-                            val message = Gson().fromJson(Gson().toJson(data), MessageData::class.java)
-                            activity?.runOnUiThread {
-                                val currentList = messageAdapter.currentList.toMutableList()
-                                currentList.add(message)
-                                messageAdapter.submitList(currentList) {
-                                    binding.rvMessages.scrollToPosition(currentList.size - 1)
-                                }
-                            }
-                        } catch (e: Exception) {
-                            Log.e("Socket.IO", "Erro ao parsear mensagem Map: ${e.message}")
-                        }
+                    } catch (e: Exception) {
+                        Log.e("Socket.IO", "Erro ao parsear mensagem: ${e.message}", e)
                     }
-                })
-                .on(Socket.EVENT_DISCONNECT, Emitter.Listener {
-                    Log.d("Socket.IO", "Desconectado do Socket.IO.")
-                })
-                .on(Socket.EVENT_CONNECT_ERROR, Emitter.Listener { args ->
-                    Log.e("Socket.IO", "Erro de conexão: ${args[0]}")
-                    activity?.runOnUiThread {
-                        Toast.makeText(requireContext(), "Erro de conexão com o chat: ${args[0]}", Toast.LENGTH_LONG).show()
-                    }
-                })
+                }
+            }.on(Socket.EVENT_DISCONNECT) {
+                Log.d("Socket.IO", "Desconectado do Socket.IO.")
+            }.on(Socket.EVENT_CONNECT_ERROR) { args ->
+                Log.e("Socket.IO", "Erro de conexão: ${args.firstOrNull()}")
+            }
 
             socket.connect()
         } catch (e: Exception) {
-            Log.e("Socket.IO", "Erro ao inicializar Socket.IO: ${e.message}")
-            Toast.makeText(requireContext(), "Erro ao inicializar chat: ${e.message}", Toast.LENGTH_LONG).show()
+            Log.e("Socket.IO", "Erro ao inicializar Socket.IO: ${e.message}", e)
+            Toast.makeText(requireContext(), "Erro ao conectar ao chat em tempo real.", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -157,14 +138,14 @@ class MessagesFragment : Fragment() {
         messageViewModel.messages.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Loading -> {
-                    // O RecyclerView pode mostrar um spinner ou estado de carregamento
-                    // binding.tvMessagesStatus.text = "Carregando mensagens..." // Removido, agora o RV gerencia
+                    // Não há mais tvMessagesStatus, o RecyclerView estará vazio ou com um spinner
+                    // Você pode adicionar um ProgressBar aqui se quiser
                 }
                 is Resource.Success -> {
                     val messages = resource.data
                     if (!messages.isNullOrEmpty()) {
                         messageAdapter.submitList(messages) {
-                            binding.rvMessages.scrollToPosition(messages.size - 1) // Rola para a última mensagem
+                            binding.rvMessages.scrollToPosition(messageAdapter.itemCount - 1)
                         }
                     } else {
                         messageAdapter.submitList(emptyList()) // Limpa a lista se não houver mensagens
@@ -172,6 +153,7 @@ class MessagesFragment : Fragment() {
                     }
                 }
                 is Resource.Error -> {
+                    messageAdapter.submitList(emptyList()) // Limpa a lista em caso de erro
                     Toast.makeText(requireContext(), "Erro ao carregar mensagens: ${resource.message}", Toast.LENGTH_LONG).show()
                 }
             }
@@ -180,19 +162,15 @@ class MessagesFragment : Fragment() {
         messageViewModel.sendMessageState.observe(viewLifecycleOwner) { resource ->
             when (resource) {
                 is Resource.Loading -> {
-                    binding.btnSendMessage.isEnabled = false
-                    binding.etMessageInput.isEnabled = false
+                    // Mostrar indicador de envio
                 }
                 is Resource.Success -> {
-                    binding.btnSendMessage.isEnabled = true
-                    binding.etMessageInput.isEnabled = true
+                    Toast.makeText(requireContext(), "Mensagem enviada!", Toast.LENGTH_SHORT).show()
                     binding.etMessageInput.text?.clear()
-                    // A mensagem já será adicionada via Socket.IO, então não precisamos chamar fetchMessages novamente
-                    // messageViewModel.fetchMessages(args.conversationId) // Removido
+                    // A mensagem será adicionada via Socket.IO, não precisamos chamar fetchMessages novamente
+                    // messageViewModel.fetchMessages(args.conversationId)
                 }
                 is Resource.Error -> {
-                    binding.btnSendMessage.isEnabled = true
-                    binding.etMessageInput.isEnabled = true
                     Toast.makeText(requireContext(), "Erro ao enviar mensagem: ${resource.message}", Toast.LENGTH_LONG).show()
                 }
             }
@@ -212,8 +190,7 @@ class MessagesFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        socket.disconnect() // Desconecta do Socket.IO
-        socket.off() // Remove todos os listeners
+        socket.disconnect() // Desconectar do Socket.IO quando o fragmento for destruído
         _binding = null
     }
 }

@@ -43,13 +43,16 @@ class ChatListFragment : Fragment() {
     private fun setupRecyclerView() {
         conversationAdapter = ConversationAdapter { conversation ->
             val otherUserId = conversation.otherUser?.id ?: ""
+            val otherUserName = conversation.otherUser?.name ?: "Usuário Desconhecido" // Obter o nome do outro usuário
             Log.d("ChatListFragment", "Navegando para MessagesFragment:")
             Log.d("ChatListFragment", "  Conversation ID: ${conversation.id}")
             Log.d("ChatListFragment", "  Other User ID: $otherUserId")
+            Log.d("ChatListFragment", "  Other User Name: $otherUserName")
 
             val action = ChatListFragmentDirections.actionChatListFragmentToMessagesFragment(
                 conversation.id,
-                otherUserId
+                otherUserId,
+                otherUserName // Passar o nome do outro usuário
             )
             findNavController().navigate(action)
         }

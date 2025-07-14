@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <solid android:color="#E0E0E0" /> <!-- Cinza claro para mensagens recebidas -->
+    <solid android:color="#E0E0E0" /> <!-- Um cinza claro para mensagens recebidas -->
     <corners
-        android:topLeftRadius="12dp"
-        android:topRightRadius="12dp"
-        android:bottomLeftRadius="4dp"
-        android:bottomRightRadius="12dp" />
+        android:topLeftRadius="8dp"
+        android:topRightRadius="8dp"
+        android:bottomLeftRadius="2dp"
+        android:bottomRightRadius="8dp" />
 </shape>

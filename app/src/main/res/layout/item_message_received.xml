@@ -1,43 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingStart="8dp"
-    android:paddingEnd="60dp"
-    android:paddingTop="4dp"
-    android:paddingBottom="4dp">
+    android:paddingVertical="4dp"
+    android:gravity="start">
 
-    <TextView
-        android:id="@+id/tv_sender_name"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="12sp"
-        android:textStyle="bold"
-        android:textColor="@android:color/black"
-        android:layout_marginBottom="2dp"
-        tools:text="Nome do Remetente" />
-
-    <TextView
-        android:id="@+id/tv_message_content"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="start"
+        android:orientation="vertical"
         android:background="@drawable/bg_message_received"
         android:padding="8dp"
-        android:textColor="@android:color/black"
-        android:textSize="16sp"
-        tools:text="Oi! Estou bem, e você? Esta é uma mensagem recebida." />
+        android:maxWidth="280dp">
+
+        <TextView
+            android:id="@+id/tv_message_sender"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textStyle="bold"
+            android:textColor="@color/design_default_color_primary"
+            android:textSize="12sp"
+            android:layout_marginBottom="2dp"
+            tools:text="Nome do Remetente" />
+
+        <TextView
+            android:id="@+id/tv_message_content"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/black"
+            android:textSize="16sp"
+            tools:text="Esta é uma mensagem recebida." />
+
+    </LinearLayout>
 
     <TextView
         android:id="@+id/tv_message_time"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="start"
-        android:layout_marginTop="2dp"
         android:textSize="10sp"
         android:textColor="@android:color/darker_gray"
-        tools:text="10:31 AM" />
+        android:layout_marginTop="2dp"
+        android:layout_marginStart="8dp"
+        tools:text="10:30 AM" />
 
 </LinearLayout>

@@ -38,6 +38,10 @@
         <argument
             android:name="otherUserId"
             app:argType="string" />
+        <argument
+            android:name="otherUserName"
+            app:argType="string"
+            android:defaultValue="Usuário Desconhecido" /> <!-- Adicionado -->
     </fragment>
 
     <fragment
